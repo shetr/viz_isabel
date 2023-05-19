@@ -12,8 +12,15 @@ add_subdirectory(extern/glfw)
 add_subdirectory(extern/glm)
 
 file(GLOB_RECURSE VIZ_SRC "src/*.cpp" "src/*.h")
+set(VIZ_INCLUDE 
+    "src"
+    "extern/glm"
+    "extern/glad/include"
+    "extern/glfw/include"
+)
 
 add_executable(viz ${VIZ_SRC})
+target_include_directories(viz PUBLIC ${VIZ_INCLUDE})
 target_link_libraries(viz PUBLIC glm)
 target_link_libraries(viz PUBLIC glfw)
 target_link_libraries(viz PUBLIC glad)
