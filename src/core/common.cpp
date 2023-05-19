@@ -2,16 +2,16 @@
 
 #include <iostream>
 
-std::vector<std::string> OpenGL::s_openGLErrors = {
-    "NO_ERROR",
-    "INVALID_ENUM",
-    "INVALID_VALUE",
-    "INVALID_OPERATION",
-    "STACK_OVERFLOW",
-    "STACK_UNDERFLOW",
-    "OUT_OF_MEMORY",
-    "INVALID_FRAMEBUFFER_OPERATION",
-    "CONTEXT_LOST"
+std::unordered_map<int, std::string> OpenGL::s_openGLErrors = {
+    std::pair<int, std::string>(GL_NO_ERROR, "NO_ERROR"),
+    std::pair<int, std::string>(GL_INVALID_ENUM, "INVALID_ENUM"),
+    std::pair<int, std::string>(GL_INVALID_VALUE, "INVALID_VALUE"),
+    std::pair<int, std::string>(GL_INVALID_OPERATION, "INVALID_OPERATION"),
+    std::pair<int, std::string>(GL_STACK_OVERFLOW, "STACK_OVERFLOW"),
+    std::pair<int, std::string>(GL_STACK_UNDERFLOW, "STACK_UNDERFLOW"),
+    std::pair<int, std::string>(GL_OUT_OF_MEMORY, "OUT_OF_MEMORY"),
+    std::pair<int, std::string>(GL_INVALID_FRAMEBUFFER_OPERATION, "INVALID_FRAMEBUFFER_OPERATION"),
+    std::pair<int, std::string>(GL_CONTEXT_LOST, "CONTEXT_LOST")
 };
 
 GLenum OpenGL::GetError()

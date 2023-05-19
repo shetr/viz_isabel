@@ -15,5 +15,6 @@ public:
 
     Window& GetWindow() { return *_window.get(); }
 protected:
+    virtual void Init() = 0;
     virtual void Update() = 0;
 };

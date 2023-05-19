@@ -16,16 +16,10 @@ App::~App()
 
 void App::Run()
 {
+    Init();
     while (!_window->ShouldClose())
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glBegin(GL_TRIANGLES);
-            glVertex3f(-0.7, -0.7, 0.0);
-            glVertex3f(0.0, 0.7, 0.0);
-            glVertex3f(0.7, -0.7, 0.0);
-        glEnd();
-        glFlush();
+        Update();
 
         _window->SwapBuffers();
 

@@ -49,6 +49,7 @@ protected:
 protected:
     GraphicsBuffer(GLenum target, int size) : GraphicsBuffer(target, size, nullptr) {}
     GraphicsBuffer(GLenum target, int size, const void* data);
+    ~GraphicsBuffer();
 public:
     void SetData(int offset, int size, const void* data);
 

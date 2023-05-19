@@ -11,6 +11,17 @@ Shader::Shader(const std::string& vertexShader, const std::string& fragmentShade
     shaderList.clear();
 }
 
+Shader::Shader(bool dummyVar, const std::string& vertexShaderText, const std::string& fragmentShaderText)
+{
+    std::vector<GLuint> shaderList;
+    shaderList.push_back(createShaderFromSource(GL_VERTEX_SHADER, vertexShaderText));
+    shaderList.push_back(createShaderFromSource(GL_FRAGMENT_SHADER, fragmentShaderText));
+
+    _programID = createProgram(shaderList);
+
+    shaderList.clear();
+}
+
 Shader::~Shader()
 {
     GL(UseProgram(0));

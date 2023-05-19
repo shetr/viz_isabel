@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <iostream>
 #include <memory>
@@ -23,7 +24,7 @@
 class OpenGL
 {
 private:
-    static std::vector<std::string> s_openGLErrors;
+    static std::unordered_map<int, std::string> s_openGLErrors;
 public:
     static GLenum GetError();
     static void ClearError();

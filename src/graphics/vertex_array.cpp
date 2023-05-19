@@ -68,6 +68,11 @@ GraphicsBuffer::GraphicsBuffer(GLenum target, int size, const void* data)
     UnBind();
 }
 
+GraphicsBuffer::~GraphicsBuffer()
+{
+    GL(DeleteBuffers(1, &_id));
+}
+
 void GraphicsBuffer::SetData(int offset, int size, const void* data) {
     Bind();
     GL(BufferSubData(_target, offset, size, data));
@@ -89,7 +94,11 @@ VertexArray::VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
     GL(GenVertexArrays(1, &_id));
 
     Bind();
+    indexBuffer.Bind();
+    UnBind();
+    indexBuffer.UnBind();
 
+    Bind();
     vertexBuffer.Bind();
     const VertexLayout& layout = vertexBuffer.GetLayout();
     for(const VertexElement& element: layout.Elements()) {
@@ -105,10 +114,8 @@ VertexArray::VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
         VertexAttribDivisor(_elementCount, 0);
         _elementCount++;
     }
-    vertexBuffer.UnBind();
-    indexBuffer.Bind();
     UnBind();
-    indexBuffer.UnBind();
+    vertexBuffer.UnBind();
 }
 
 VertexArray::~VertexArray()

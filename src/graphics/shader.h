@@ -18,6 +18,7 @@ private:
 
 public:
     Shader(const std::string& vertexShader, const std::string& fragmentShader);
+    Shader(bool dummyVar, const std::string& vertexShaderText, const std::string& fragmentShaderText);
     ~Shader();
 
     void Bind();
