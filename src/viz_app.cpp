@@ -32,8 +32,8 @@ void VizApp::Init()
 {
     _basicShader = std::unique_ptr<Shader>(new Shader(true, g_vertSrc, g_fragSrc));
     
-    _triangleVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(3, g_triangle, VertexLayout({VertexElement(GL_FLOAT, 3)})));
-    _triangleIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(3, g_triangleIndices));
+    _triangleVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(3 * 3 * sizeof(float), g_triangle, VertexLayout({VertexElement(GL_FLOAT, 3)})));
+    _triangleIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(3 * sizeof(int), g_triangleIndices));
     _triangleVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_triangleVertexBuffer, *_triangleIndexBuffer));
 
     GL(ClearColor(0, 0, 0, 1));
