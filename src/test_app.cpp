@@ -14,40 +14,13 @@ uint8_t g_texture[] = {
     255, 255, 255
 };
 
-std::string g_vertSrc = R"(
-    #version 330 core
-			
-    layout(location = 0) in vec3 a_position;
-
-    out vec2 f_uv;
-
-    void main()
-    {
-        f_uv = a_position.xy;
-        gl_Position = vec4(a_position, 1.0);	
-    }
-)";
-std::string g_fragSrc = R"(
-    #version 330 core
-			
-    layout(location = 0) out vec4 color;
-
-    uniform vec3 u_color = vec3(0, 0, 0);
-    uniform sampler2D u_textureSampler;
-
-    in vec2 f_uv;
-
-    void main()
-    {
-        color = vec4(u_color * texture2D(u_textureSampler, f_uv).xyz, 1);
-    }
-)";
-
 void TestApp::Init(Window* window, VizImGuiContext* imguiContext)
 {
     _window = window;
     _imguiContext = imguiContext;
-    _basicShader = Shader::CreateFromSource(g_vertSrc, g_fragSrc);
+    std::string testShaderVS = std::string(SHADERS_SRC_LOC) + "test.vs";
+    std::string testShaderFS = std::string(SHADERS_SRC_LOC) + "test.fs";
+    _basicShader = std::unique_ptr<Shader>(new Shader(testShaderVS, testShaderFS));
     
     _triangleVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(3 * 3 * sizeof(float), g_triangle, VertexLayout({VertexElement(GL_FLOAT, 3)})));
     _triangleIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(3 * sizeof(int), g_triangleIndices));

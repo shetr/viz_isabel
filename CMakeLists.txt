@@ -19,6 +19,9 @@ set(VIZ_INCLUDE
     "extern/glfw/include"
 )
 
+add_compile_definitions(SHADERS_SRC_LOC="${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/")
+add_compile_definitions(DATA_LOC="${CMAKE_CURRENT_SOURCE_DIR}/data/")
+
 add_executable(viz ${VIZ_SRC})
 target_include_directories(viz PUBLIC ${VIZ_INCLUDE})
 target_link_libraries(viz PUBLIC glm)
