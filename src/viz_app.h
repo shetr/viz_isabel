@@ -10,10 +10,6 @@ class VizApp : public AppImpl
 private:
     Window* _window;
     VizImGuiContext* _imguiContext;
-    std::unique_ptr<Shader> _basicShader;
-    std::unique_ptr<VertexBuffer> _triangleVertexBuffer;
-    std::unique_ptr<IndexBuffer> _triangleIndexBuffer;
-    std::unique_ptr<VertexArray> _triangleVertexArray;
 public:
     VizApp() {}
     
