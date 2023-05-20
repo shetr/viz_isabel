@@ -190,7 +190,6 @@ download() {
 
     done <<EOF--dataset.file.url.chksum_type.chksum
 'HGTdata.bin.gz' 'https://www.earthsystemgrid.org/api/v1/dataset/isabeldata/file/HGTdata.bin.gz' 'md5' 'ad8b1d4fc155a5923db7e5dfe2aee37c'
-'readme.html' 'https://www.earthsystemgrid.org/api/v1/dataset/isabeldata/file/readme.html' 'md5' 'c57059365626394b384aea383a62caa8'
 'TCf01.bin.gz' 'https://www.earthsystemgrid.org/api/v1/dataset/isabeldata/file/TCf01.bin.gz' 'md5' '385387f6e28ab134a487d50eee2a1c43'
 'TCf02.bin.gz' 'https://www.earthsystemgrid.org/api/v1/dataset/isabeldata/file/TCf02.bin.gz' 'md5' 'cf2aa9e8950d96b5841fd629a62a21ce'
 'TCf03.bin.gz' 'https://www.earthsystemgrid.org/api/v1/dataset/isabeldata/file/TCf03.bin.gz' 'md5' '46b9a25dd2b2066502b592193da2ad16'
