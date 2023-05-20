@@ -1,0 +1,159 @@
+<html>
+
+<table>
+<tr>
+<td><img src=images/sTCall.0.jpg></td>
+<td><h1>Hurricane Isabel WRF Model Data</h1></td>
+<td><img src=images/sQVAPORall.jpg></td>
+<td></td>
+</tr>
+</table>
+
+<p>
+This directory contains several datasets of compressed "bricks" of floats.  
+Each file represents a single atmospheric variable for one timestep.  The file 
+naming convention is <b>VAR</b>f<b>NN</b>.bin.gz, where <b>VAR</b> is the variable name (CLOUD, PRECIP, etc.), and <b>NN</b> is the timestep (1 per hour).
+<p>
+There is also and single 2D file (HGTdata.bin.gz) containing the height field 
+of the surface topography.
+<p>
+The Weather Research and Forecasting (WRF) Model is developed by NCAR and its 
+partners <a href=http://wrf-model.org>(http://wrf-model.org)</a>, and the simulation of Hurricane Isabel and 
+data processing are performed by Wei Wang, Cindy Bruyere, and Bill Kuo of 
+Mesoscale and Microscale Meteorology Division, NCAR, and the SCD visualization 
+group.
+
+<p>
+If you use the data set, please provide the following attribution:
+
+<p>
+    The authors will like to thank Bill Kuo, Wei Wang, Cindy Bruyere, 
+Tim Scheitlin, and Don Middleton of the U.S. National Center for 
+Atmospheric Research (NCAR), and the U.S. National Science 
+Foundation (NSF) for providing the Weather Research and 
+Forecasting (WRF) Model simulation data of Hurricane Isabel. 
+
+<p>
+A shorter attribution is:
+
+<p>
+    Hurricane Isabel data produced by the Weather Research and Forecast (WRF) 
+model, courtesy of NCAR, and the U.S. National Science Foundation (NSF). 
+
+<h4>File Compression</h4>
+Each file is a compressed (gzip) brick of floats.  Each file will expand to 100000000 bytes when uncompressed.  The byte order is Big Endian.
+
+<h4>Variable Dimensions for each file</h4>
+<ul>
+<li>XDIM (horizontal longitude) = 500
+<li>YDIM (horizontal latitude) = 500
+<li>ZDIM (vertical) = 100 equally spaced levels
+<li>TDIM (time) = 1 for each file with a total of 48 timesteps for each variable.
+</ul>
+
+<p>
+The height data file (HGTdata.bin), contains a 2D file of floats with dimensions
+500x500x1.
+
+<h4>Array ordering</h4>
+
+The data can be accessed as follows:
+<p>
+<pre>
+   fread((float *) data, TDIM*ZDIM*XDIM*YDIM*sizeof(float),1, fp);
+</pre>
+<p>
+Where XDIM=YDIM=500, ZDIM=100, TDIM=1, and fp is a FILE pointer (fopen) to the input dataset.
+<p>
+A single element that has an index of x,y,z, and t, is accessed as:
+<pre> 
+      data[x + y*XDIM + z*XDIM*YDIM + t*XDIM*YDIM*ZDIM];
+</pre> 
+Note: If you are reading a file with a single timestep, t=0.  Alternatively, 
+you can concatenate (using the Unix cat command) several timesteps together, and
+access the data with the above formula where 0<=t<=Number_of_timesteps-1.
+ 
+ 
+<h4>Data Coordinates</h4>
+<h4></h4>
+
+The coordinates for the data are:
+<pre>
+   x (Longitude) coordinate runs from 83 W to 62 W (approx)
+   y (Latitude) coordinate runs from 23.7 N to 41.7 N (approx)
+   z (Vertical) coordinate runs from .035 KM to 19.835 KM (100 equally spaced levels with delta=.2 KM)
+</pre>
+
+<h4>Missing Values</h4>
+Land values, where there is no valid atmospheric data, are designated with the value of 1.0e35.
+
+<h4>Variable Descriptions</h4>
+
+
+<table border>
+<tr>
+  <th> Variable </th>
+  <th> Description </th>
+  <th> Min/Max </th>
+  <th> Units </th>
+</tr>
+<tr>
+  <td>QCLOUD</td> <td>Cloud Water </td> <td>0.00000/0.00332</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>QGRAUP</td> <td>Graupel </td> <td>0.00000/0.01638</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>QICE</td> <td>Cloud Ice </td> <td>0.00000/0.00099</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>QRAIN</td> <td>Rain </td> <td>0.00000/0.01132</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>QSNOW</td> <td>Snow </td> <td>0.00000/0.00135</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>QVAPOR</td> <td>Water Vapor </td> <td>0.00000/0.02368</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>CLOUD</td> <td>Total cloud (QICE+QCLOUD) </td> <td>0.00000/0.00332</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>PRECIP</td> <td>Total Precipitation (QGRAUP+QRAIN+QSNOW) </td> <td>0.00000/0.01672</td> <td>kg/kg</td>
+</tr>
+<tr>
+  <td>P</td> <td>Pressure; weight of the atmosphere above a grid point </td> <td>-5471.85791/3225.42578</td> <td>Pascals</td>
+</tr>
+<tr>
+  <td>TC</td> <td>Temperature </td> <td>-83.00402/31.51576</td> <td>Degrees Celsius</td>
+</tr>
+<tr>
+  <td>U</td> <td>X wind component; west-east wind component in model coordinate, postive means winds blow from west to east </td> <td>-79.47297/85.17703</td> <td>m s-1</td>
+</tr>
+<tr>
+  <td>V</td> <td>Y wind component; south-north wind component in model coordinate, postive means winds blow from south to north
+ </td> <td>-76.03391/82.95293</td> <td>m s-1</td>
+</tr>
+<tr>
+  <td>W</td> <td>Z wind component; vertical wind component in model coordinate, positive means upward motion </td> <td>-9.06026/28.61434</td> <td>m s-1</td>
+</tr>
+</table>
+
+<p>
+Note: All of the 'Q' variables represent moisture in the atmosphere in one form 
+or another.  For example, rain water differs from cloud water in terms of 
+their particle sizes.  Rain water has larger drop sizes so they can fall 
+through the air, while cloud water has smaller drop sizes so they stay in 
+the air.  Rain water differs from snow and graupel in terms of their densities,
+and so does cloud water from cloud ice.
+</p>
+
+
+<h4>Suggested Links for more Hurricane Information</h4>
+<ul>
+<li><a href=http://cimss.ssec.wisc.edu/tropic/tropic.html>
+http://cimss.ssec.wisc.edu/tropic/tropic.html</a>
+<li><a href= http://www.nhc.noaa.gov/archive/2003/>
+http://www.nhc.noaa.gov/archive/2003/</a>
+</ul>
+</html>
