@@ -15,11 +15,13 @@ private:
 
 	std::unordered_map<std::string, GLint> _uniformLocations;
 	std::unordered_map<std::string, GLint> _attribLocations;
-
+private:
+	Shader() : _programID(0) {}
 public:
     Shader(const std::string& vertexShader, const std::string& fragmentShader);
-    Shader(bool dummyVar, const std::string& vertexShaderText, const std::string& fragmentShaderText);
     ~Shader();
+
+	static std::unique_ptr<Shader> CreateFromSource(const std::string& vertexShaderText, const std::string& fragmentShaderText);
 
     void Bind();
     void Unbind();

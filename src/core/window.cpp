@@ -17,9 +17,11 @@ Window::~Window()
 
 }
 
-void Window::GetSize(int& width, int& height) const
+glm::ivec2 Window::GetSize() const
 {
-    glfwGetWindowSize(_id, &width, &height);
+    glm::ivec2 size;
+    glfwGetWindowSize(_id, &size.x, &size.y);
+    return size;
 }
 void Window::SetSize(int width, int height)
 {

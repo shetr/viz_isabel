@@ -10,11 +10,11 @@ public:
     Window(int width, int height, const std::string& title);
     ~Window();
 
-    void GetSize(int& width, int& height) const;
+    glm::ivec2 GetSize() const;
 	void SetSize(int width, int height);
 
     void SwapBuffers();
     bool ShouldClose() const;
 
-    GLFWwindow* GetID() { return _id; };
+    GLFWwindow* GetID() const { return _id; };
 };

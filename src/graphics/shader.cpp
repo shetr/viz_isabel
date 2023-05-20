@@ -11,21 +11,26 @@ Shader::Shader(const std::string& vertexShader, const std::string& fragmentShade
     shaderList.clear();
 }
 
-Shader::Shader(bool dummyVar, const std::string& vertexShaderText, const std::string& fragmentShaderText)
-{
-    std::vector<GLuint> shaderList;
-    shaderList.push_back(createShaderFromSource(GL_VERTEX_SHADER, vertexShaderText));
-    shaderList.push_back(createShaderFromSource(GL_FRAGMENT_SHADER, fragmentShaderText));
-
-    _programID = createProgram(shaderList);
-
-    shaderList.clear();
-}
-
 Shader::~Shader()
 {
     GL(UseProgram(0));
-    GL(DeleteProgram(_programID));
+    if (_programID != 0) {
+        GL(DeleteProgram(_programID));
+    }
+}
+
+std::unique_ptr<Shader> Shader::CreateFromSource(const std::string& vertexShaderText, const std::string& fragmentShaderText)
+{
+    std::unique_ptr<Shader> shader = std::unique_ptr<Shader>(new Shader());
+    std::vector<GLuint> shaderList;
+    shaderList.push_back(shader->createShaderFromSource(GL_VERTEX_SHADER, vertexShaderText));
+    shaderList.push_back(shader->createShaderFromSource(GL_FRAGMENT_SHADER, fragmentShaderText));
+
+    shader->_programID = shader->createProgram(shaderList);
+
+    shaderList.clear();
+
+    return std::move(shader);
 }
 
 void Shader::Bind()

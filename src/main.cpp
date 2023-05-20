@@ -1,7 +1,7 @@
 #include "viz_app.h"
 
 int main(int argc, char** argv) {
-    VizApp app;
+    App app(new VizApp());
     app.Run();
     return 0;
 }

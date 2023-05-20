@@ -5,9 +5,11 @@
 #include <graphics/shader.h>
 #include <graphics/vertex_array.h>
 
-class VizApp : public App
+class VizApp : public AppImpl
 {
 private:
+    Window* _window;
+    VizImGuiContext* _imguiContext;
     std::unique_ptr<Shader> _basicShader;
     std::unique_ptr<VertexBuffer> _triangleVertexBuffer;
     std::unique_ptr<IndexBuffer> _triangleIndexBuffer;
@@ -16,6 +18,6 @@ public:
     VizApp() {}
     
 protected:
-    void Init() override;
-    void Update() override;
+    void Init(Window* window, VizImGuiContext* imguiContext) override;
+    void Update(double deltaTime) override;
 };

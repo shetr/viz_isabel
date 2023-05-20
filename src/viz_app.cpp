@@ -28,9 +28,11 @@ std::string g_fragSrc = R"(
     }
 )";
 
-void VizApp::Init()
+void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 {
-    _basicShader = std::unique_ptr<Shader>(new Shader(true, g_vertSrc, g_fragSrc));
+    _window = window;
+    _imguiContext = imguiContext;
+    _basicShader = Shader::CreateFromSource(g_vertSrc, g_fragSrc);
     
     _triangleVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(3 * 3 * sizeof(float), g_triangle, VertexLayout({VertexElement(GL_FLOAT, 3)})));
     _triangleIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(3 * sizeof(int), g_triangleIndices));
@@ -39,8 +41,11 @@ void VizApp::Init()
     GL(ClearColor(0, 0, 0, 1));
 }
 
-void VizApp::Update()
+void VizApp::Update(double deltaTime)
 {
+    glm::ivec2 winSize = _window->GetSize();
+    GL(Viewport(0, 0, winSize.x, winSize.y));
+    
     GL(Clear(GL_COLOR_BUFFER_BIT));
 
     _basicShader->Bind();
@@ -53,10 +58,13 @@ void VizApp::Update()
     _basicShader->Unbind();
     _triangleVertexArray->UnBind();
 
-    //glBegin(GL_TRIANGLES);
-    //    glVertex3f(-0.7, -0.7, 0.0);
-    //    glVertex3f(0.0, 0.7, 0.0);
-    //    glVertex3f(0.7, -0.7, 0.0);
-    //glEnd();
-    //glFlush();
+    {
+        ImGuiDraw imguiDraw = _imguiContext->Draw();
+
+        ImGui::Begin("Test");
+
+        ImGui::Text("test text");
+
+        ImGui::End();
+    }
 }
