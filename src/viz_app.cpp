@@ -89,17 +89,34 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     GL(Enable(GL_DEPTH_TEST));
     GL(ClearColor(0, 0, 0, 1));
 
-    //_windData.data();
-    std::vector<float> _windPts(data_size.x * data_size.y * data_size.z * 3 * 2, 0.f); // array for uniform lines vbuffer 
-    GenerateLines(_isabelWind, _windPts);
-    
+    // Wind line glyph initialization
+    std::string lineShaderVS = std::string(SHADERS_SRC_LOC) + "line.vs";
+    std::string lineShaderFS = std::string(SHADERS_SRC_LOC) + "line.fs";
+    _lineShader = std::unique_ptr<Shader>(new Shader(lineShaderVS, lineShaderFS));
+
+    //_windPts.reserve(data_size.x * data_size.y * data_size.z * 3 * 2); // array for uniform lines vbuffer 
+    //GenerateLines(_isabelWind, _windPts);
+
+    std::vector<float> _windPts;
+    std::vector<float> _windVelocity;
+    _windPts.reserve(data_size.x * data_size.z * 3 * 2); // array for uniform lines vbuffer 
+    _windVelocity.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer 
+    GenerateLinesLayerHorizontal(_isabelWind, 60, _windPts, _windVelocity);
+
+    for (auto& w : _windVelocity)
+    {
+        _maxVelocityValue = std::max(w, _maxVelocityValue);
+        _minVelocityValue = std::min(w, _minVelocityValue);
+    }
+    _lineTexture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_3D, GL_R32F, GL_RED, GL_FLOAT));
+    _lineTexture->SetData3D(data_size.x, 1, data_size.z, _windVelocity.data());
+
     VertexLayout lineVerticesLayout = {
         VertexElement(GL_FLOAT, 3)
     };
 
     _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(float), _windPts.data(), lineVerticesLayout));
-    //_lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_cutVertexBuffer));
-
+    _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer));
 }
 
 void VizApp::Update(double deltaTime)
@@ -149,6 +166,26 @@ void VizApp::Update(double deltaTime)
         
         _cutShader->Unbind();
         _cutVertexArray->UnBind();
+
+    }
+    
+    // Draw wind line glyphs
+    {
+        glm::mat4 PVM = _camera.GetP() * _camera.GetV();
+
+        _lineShader->SetUniformMat4("u_PVM", PVM);
+        _lineShader->SetUniformFloat("u_minVelocity", _minVelocityValue);
+        _lineShader->SetUniformFloat("u_maxVelocity", _maxVelocityValue);
+        _lineShader->SetUniformInt("u_textureSampler", 0);
+
+
+        _lineShader->Bind();
+        _lineVertexArray->Bind();
+
+        GL(DrawArrays(GL_LINES, 0, 500*500*2*3));
+        
+        _lineShader->Unbind();
+        _lineVertexArray->UnBind();
     }
     
 
@@ -173,6 +210,7 @@ void VizApp::Update(double deltaTime)
         ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
         ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
         ImGui::SliderFloat("cam speed", &_camera.GetSpeed(), 0, 500);
+        ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), 30.0, 90.0);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
 

@@ -34,6 +34,7 @@ public:
     float& GetRotY() { return _rotY; }
     float& GetRotX() { return _rotX; }
     float& GetSpeed() { return _speed; }
+    float& GetFOV() { return _FOV; }
 
 	const glm::mat4& GetV() const { return _V; }
 	const glm::mat4& GetP() const { return _P; }

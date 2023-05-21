@@ -23,12 +23,6 @@ private:
     std::unique_ptr<IndexBuffer> _cutIndexBuffer;
     std::unique_ptr<VertexArray> _cutVertexArray;
     std::unique_ptr<Texture> _tempTexture;
-    
-    std::unique_ptr<Shader> _lineShader;
-    std::unique_ptr<VertexBuffer> _lineVertexBuffer;
-    std::unique_ptr<IndexBuffer> _lineIndexBuffer;
-    std::unique_ptr<VertexArray> _lineVertexArray;
-    std::unique_ptr<Texture> _lineTexture;
 
     std::array<bool, 2> _cutEnabled = {true, true};
     std::array<float, 2> _cuts = {0.5f, 0.5f};
@@ -39,6 +33,15 @@ private:
 
     float _maxTempValue = -std::numeric_limits<float>::infinity();
     float _minTempValue = std::numeric_limits<float>::infinity();
+    float _maxVelocityValue = -std::numeric_limits<float>::infinity();
+    float _minVelocityValue = std::numeric_limits<float>::infinity();
+    
+    std::unique_ptr<Shader> _lineShader;
+    std::unique_ptr<VertexBuffer> _lineVertexBuffer;
+    std::unique_ptr<IndexBuffer> _lineIndexBuffer;
+    std::unique_ptr<VertexArray> _lineVertexArray;
+    std::unique_ptr<Texture> _lineTexture;
+
     Camera _camera;
     glm::vec2 _lastCursorPos;
 public:
