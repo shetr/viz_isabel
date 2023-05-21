@@ -17,7 +17,7 @@ void GenerateLines(vector3d<glm::vec3>& data)
             }
             
         }
-        
+
     }
     
 }

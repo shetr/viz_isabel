@@ -7,24 +7,20 @@ private:
 	float _FOV = 90.0f;
 	float _near = 0.1f;
 	float _far = 10.0f;
-	float _height;
-	float _aspectRatio;
-	float _speed;
+	float _speed = 100.0f;
 
     float _rotY = 0;
     float _rotX = 0;
-	float _yaw;
-	float _pitch;
 
-	glm::mat4 _projectionMatrix;
-	glm::mat4 _viewMatrix;
+	glm::mat4 _P;
+	glm::mat4 _V;
 
 	glm::vec3 _pos = glm::vec3(0, 0, 1);
 
 public:
     Camera();
     
-    void Recalculate();
+    void Recalculate(float aspectRatio);
     void RecalculateProjectionMatrix();
     
     void SetAspectRatio(float ar);
@@ -33,10 +29,14 @@ public:
     void SetNear(float n);
     void SetFar(float f);
 
-    void SetPerspective(float height, float fov, float n, float f);
+    void SetPerspective(float fov, float n, float f);
 
-    float& GetYaw() { return _yaw; }
-    float& GetPitch() { return _pitch; }
+    float& GetRotY() { return _rotY; }
+    float& GetRotX() { return _rotX; }
+    float& GetSpeed() { return _speed; }
+
+	const glm::mat4& GetV() const { return _V; }
+	const glm::mat4& GetP() const { return _P; }
 
     void SetPitchAndYaw(float pitch, float yaw);
 };

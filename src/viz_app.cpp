@@ -30,11 +30,18 @@ void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
     }
     fread(out.data(), out.size()*sizeof(float), 1, f);
     fclose(f);
+    // big endian to little endian
     for (size_t i = 0; i < out.size(); ++i) {
         uint32_t v = *(uint32_t*)&out[i];
         v = _byteswap_ulong(v);
         out[i] = *(float*)&v;
     }
+    // switch y and z axis
+    vector3d<float> swaped(glm::uvec3(out.dim().x, out.dim().z, out.dim().y), 0.0f);
+    for (size_t z = 0; z < swaped.dim().z; ++z)
+        for (size_t y = 0; y < swaped.dim().y; ++y)
+            for (size_t x = 0; x < swaped.dim().x; ++x)
+                swaped[x, y, z] = out[x, z, y];
 }
 
 void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
@@ -52,7 +59,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 
     std::string tempFilename = std::string(DATA_LOC) + "TCf24.bin";
     ReadVolumetricFile(tempFilename, _isabelTemp);
-    char axis[3] = {'U', 'V', 'W'};
+    char axis[3] = {'U', 'W', 'V'};
     vector3d<float> windAxis(data_size, 0.0f);
     for (int ax = 0; ax < 3; ++ax) {
         std::string windAxisFilename = std::string(DATA_LOC) + axis[ax] + std::string("f24.bin");
@@ -73,6 +80,8 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _tempTexture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_3D, GL_R32F, GL_RED, GL_FLOAT));
     _tempTexture->SetData3D(data_size.x, data_size.y, data_size.z, _isabelTemp.data());
 
+    _lastCursorPos = _window->GetCursorPosEye();
+
     GL(Disable(GL_CULL_FACE));
     GL(Enable(GL_DEPTH_TEST));
     GL(ClearColor(0, 0, 0, 1));
@@ -83,16 +92,18 @@ void VizApp::Update(double deltaTime)
     glm::ivec2 winSize = _window->GetSize();
     GL(Viewport(0, 0, winSize.x, winSize.y));
     float aspectRatio = (float) winSize.x / (float) winSize.y;
-    float fov = glm::pi<float>() / 2.0f;
-    float near = 0.1;
-    float far = 10;
-    glm::mat4 P = glm::perspective(fov, aspectRatio, near, far);
+    glm::vec2 cursorPos = _window->GetCursorPosEye();
+    glm::vec2 cursorDir = cursorPos - _lastCursorPos;
 
+    if (!ImGui::IsAnyWindowHovered() && !ImGui::IsAnyWindowFocused() && _window->IsMouseButtonPressed(MouseButton::LEFT_1)) {
+        _camera.GetRotY() -= _camera.GetSpeed() * cursorDir.x;
+        _camera.GetRotX() -= _camera.GetSpeed() * cursorDir.y;
+    }
+
+    _camera.Recalculate(aspectRatio);
     glm::vec3 cutPos = glm::vec3(0, 0, _cutZ - 0.5f);
     glm::mat4 M = glm::translate(cutPos);
-    glm::vec3 camPos = glm::vec3(0, 0, 1);
-    glm::mat4 V = glm::translate(-camPos) * glm::rotate(-glm::radians(_rotX), glm::vec3(-1, 0, 0)) * glm::rotate(-glm::radians(_rotY), glm::vec3(0, 1, 0));
-    glm::mat4 PVM = P * V * M;
+    glm::mat4 PVM = _camera.GetP() * _camera.GetV() * M;
     
     GL(Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
@@ -118,11 +129,14 @@ void VizApp::Update(double deltaTime)
 
         ImGui::SliderFloat("cut pos", &_cutZ, 0, 1);
         
-        ImGui::SliderFloat("rot y", &_rotY, -180, 180);
-        ImGui::SliderFloat("rot x", &_rotX, -89, 89);
+        ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
+        ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
+        ImGui::SliderFloat("cam speed", &_camera.GetSpeed(), 0, 500);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
 
         ImGui::End();
     }
+
+    _lastCursorPos = cursorPos;
 }

@@ -6,6 +6,7 @@
 #include <graphics/shader.h>
 #include <graphics/vertex_array.h>
 #include <graphics/texture.h>
+#include <graphics/camera.h>
 
 class VizApp : public AppImpl
 {
@@ -24,8 +25,8 @@ private:
     float _cutZ = 0.5f;
     float _maxTempValue = -std::numeric_limits<float>::infinity();
     float _minTempValue = std::numeric_limits<float>::infinity();
-    float _rotY = 0;
-    float _rotX = 0;
+    Camera _camera;
+    glm::vec2 _lastCursorPos;
 public:
     VizApp() {}
     
