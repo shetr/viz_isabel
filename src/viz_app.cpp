@@ -105,6 +105,7 @@ void VizApp::Update(double deltaTime)
     }
     _camera.Recalculate(aspectRatio);
 
+    // draw temp cuts
     for (int cut = 0; cut < (int)_cuts.size(); ++ cut) {
         if (!_cutEnabled[cut]) {
             continue;
@@ -123,6 +124,10 @@ void VizApp::Update(double deltaTime)
         _cutShader->SetUniformFloat("u_maxTemp", g_maxTemp);
         _cutShader->SetUniformFloat("u_shift", _cuts[cut]);
         _cutShader->SetUniformInt("u_axis", cut);
+        _cutShader->SetUniformFloat3("u_coldColor", _coldColor);
+        _cutShader->SetUniformFloat3("u_zeroColor", _zeroColor);
+        _cutShader->SetUniformFloat3("u_warmColor", _warmColor);
+        _cutShader->SetUniformFloat3("u_invalidColor", _invalidColor);
 
         _cutShader->Bind();
         _tempTexture->BindToUnit(0);
@@ -146,6 +151,12 @@ void VizApp::Update(double deltaTime)
         ImGui::Checkbox("Y Cut", &_cutEnabled[1]);
         if (_cutEnabled[1])
             ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
+        
+        ImGui::Text("Cut colors");
+        ImGui::ColorEdit3("cold color", &_coldColor[0]);
+        ImGui::ColorEdit3("zero color", &_zeroColor[0]);
+        ImGui::ColorEdit3("warm color", &_warmColor[0]);
+        ImGui::ColorEdit3("invalid color", &_invalidColor[0]);
         
         ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
         ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);

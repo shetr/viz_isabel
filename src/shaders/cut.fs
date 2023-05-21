@@ -6,6 +6,10 @@ uniform float u_minTemp = 0;
 uniform float u_maxTemp = 1;
 uniform float u_shift = 0;
 uniform int u_axis = 0;
+uniform vec3 u_coldColor = vec3(0.0, 0.0, 1.0);
+uniform vec3 u_zeroColor = vec3(1.0);
+uniform vec3 u_warmColor = vec3(1.0, 0.0, 0.0);
+uniform vec3 u_invalidColor = vec3(0.5);
 
 uniform sampler3D u_textureSampler;
 
@@ -13,6 +17,7 @@ in vec2 f_uv;
 
 void main()
 {
+    float invalidTempLimit = 1.0e34;
     vec3 colors[5] = {
         vec3(253, 231, 37) / 255.0,
         vec3(94, 201, 98) / 255.0,
@@ -29,17 +34,22 @@ void main()
         texCoord = vec3(f_uv.x, u_shift, f_uv.y);
     }
     float temp = float(texture(u_textureSampler, texCoord));
-    float t = (clamp(temp, u_minTemp, u_maxTemp) - u_minTemp) / (u_maxTemp - u_minTemp);
-    //vec3 c = vec3(0.0);
-    //for (int i = 0; i < 4; ++i) {
-    //    float start = float(i) * (1.0 / 5.0);
-    //    float end = float(i + 1) * (1.0 / 5.0);
-    //    if (t >= start && t < end) {
-    //        float t2 = (t - start) / (end - start);
-    //        c = (1 - t2) * colors[i] + t2 * colors[i + 1];
-    //    }
-    //}
-    //vec3 c = (1 - t) * c1 + t * c2;
-    vec3 c = vec3(t);
-    color = vec4(c, 1);
+    if (temp > invalidTempLimit) {
+        color = vec4(u_invalidColor, 1);
+    } else {
+        bool isFreezing = temp <= 0;
+        float maxVal = u_maxTemp;
+        if (isFreezing) {
+            maxVal = -u_minTemp;
+            temp += maxVal;
+        }
+        float t = temp / maxVal;
+        vec3 c = vec3(0.0);
+        if (isFreezing) {
+            c = (1 - t) * u_coldColor + t * u_zeroColor;
+        } else {
+            c = (1 - t) * u_zeroColor + t * u_warmColor;
+        }
+        color = vec4(c, 1);
+    }
 }

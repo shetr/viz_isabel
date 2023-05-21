@@ -82,13 +82,14 @@ private:
     GLuint _id;
     unsigned int _elementCount = 0;
 public:
+    VertexArray(VertexBuffer& vertexBuffer);
     VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer);
     ~VertexArray();
 
     void Bind();
     void UnBind();
 private:
-    
+    void AttachVertexBuffer(VertexBuffer& vertexBuffer);
 
     void EnableVertexAttribArray(int i);
     void VertexAttribPointer(int i, int count, int type, bool normalized, int stride, const void* offset);

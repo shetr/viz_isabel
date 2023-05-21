@@ -89,6 +89,13 @@ void GraphicsBuffer::UnBind()
     GL(BindBuffer(_target, 0));
 }
 
+VertexArray::VertexArray(VertexBuffer& vertexBuffer)
+{
+    GL(GenVertexArrays(1, &_id));
+    
+    AttachVertexBuffer(vertexBuffer);
+}
+
 VertexArray::VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
 {
     GL(GenVertexArrays(1, &_id));
@@ -98,6 +105,27 @@ VertexArray::VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
     UnBind();
     indexBuffer.UnBind();
 
+    AttachVertexBuffer(vertexBuffer);
+}
+
+VertexArray::~VertexArray()
+{
+    GL(DeleteVertexArrays(1, &_id));
+}
+
+
+void VertexArray::Bind()
+{
+    GL(BindVertexArray(_id));
+}
+
+void VertexArray::UnBind()
+{
+    GL(BindVertexArray(0));
+}
+
+void VertexArray::AttachVertexBuffer(VertexBuffer& vertexBuffer)
+{
     Bind();
     vertexBuffer.Bind();
     const VertexLayout& layout = vertexBuffer.GetLayout();
@@ -116,22 +144,6 @@ VertexArray::VertexArray(VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
     }
     UnBind();
     vertexBuffer.UnBind();
-}
-
-VertexArray::~VertexArray()
-{
-    GL(DeleteVertexArrays(1, &_id));
-}
-
-
-void VertexArray::Bind()
-{
-    GL(BindVertexArray(_id));
-}
-
-void VertexArray::UnBind()
-{
-    GL(BindVertexArray(0));
 }
 
 void VertexArray::EnableVertexAttribArray(int i)

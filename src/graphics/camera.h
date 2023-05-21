@@ -9,8 +9,8 @@ private:
 	float _far = 10.0f;
 	float _speed = 100.0f;
 
-    float _rotY = 0;
-    float _rotX = 0;
+    float _rotY = -50;
+    float _rotX = 20;
 
 	glm::mat4 _P;
 	glm::mat4 _V;

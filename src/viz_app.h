@@ -24,6 +24,11 @@ private:
 
     std::array<bool, 2> _cutEnabled = {true, true};
     std::array<float, 2> _cuts = {0.5f, 0.5f};
+    glm::vec3 _coldColor = glm::vec3(0.0, 74.0, 193.0) / 255.f;
+    glm::vec3 _zeroColor = glm::vec3(1.0);
+    glm::vec3 _warmColor = glm::vec3(243.0, 43.0, 0.0) / 255.f;
+    glm::vec3 _invalidColor = glm::vec3(0.5);
+
     float _maxTempValue = -std::numeric_limits<float>::infinity();
     float _minTempValue = std::numeric_limits<float>::infinity();
     Camera _camera;
