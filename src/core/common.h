@@ -9,6 +9,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
+#include <array>
 #include <vector>
 #include <unordered_map>
 #include <string>

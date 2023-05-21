@@ -94,43 +94,58 @@ void VizApp::Update(double deltaTime)
 {
     glm::ivec2 winSize = _window->GetSize();
     GL(Viewport(0, 0, winSize.x, winSize.y));
+    GL(Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
     float aspectRatio = (float) winSize.x / (float) winSize.y;
     glm::vec2 cursorPos = _window->GetCursorPosEye();
     glm::vec2 cursorDir = cursorPos - _lastCursorPos;
-
     if (!ImGui::IsAnyWindowHovered() && !ImGui::IsAnyWindowFocused() && _window->IsMouseButtonPressed(MouseButton::LEFT_1)) {
         _camera.GetRotY() -= _camera.GetSpeed() * cursorDir.x;
         _camera.GetRotX() -= _camera.GetSpeed() * cursorDir.y;
     }
-
     _camera.Recalculate(aspectRatio);
-    glm::vec3 cutPos = glm::vec3(0, 0, _cutZ - 0.5f);
-    glm::mat4 M = glm::translate(cutPos);
-    glm::mat4 PVM = _camera.GetP() * _camera.GetV() * M;
+
+    for (int cut = 0; cut < (int)_cuts.size(); ++ cut) {
+        if (!_cutEnabled[cut]) {
+            continue;
+        }
+        glm::mat4 M;
+        if (cut == 0) {
+            M = glm::translate(glm::vec3(0, 0, _cuts[cut] - 0.5f));
+        } else {
+            M = glm::translate(glm::vec3(0, _cuts[cut] - 0.5f, 0)) * glm::rotate(glm::radians(90.0f), glm::vec3(1, 0, 0));
+        }
+        glm::mat4 PVM = _camera.GetP() * _camera.GetV() * M;
+
+        _cutShader->SetUniformMat4("u_PVM", PVM);
+        _cutShader->SetUniformInt("u_textureSampler", 0);
+        _cutShader->SetUniformFloat("u_minTemp", g_minTemp);
+        _cutShader->SetUniformFloat("u_maxTemp", g_maxTemp);
+        _cutShader->SetUniformFloat("u_shift", _cuts[cut]);
+        _cutShader->SetUniformInt("u_axis", cut);
+
+        _cutShader->Bind();
+        _tempTexture->BindToUnit(0);
+        _cutVertexArray->Bind();
+
+        GL(DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+        
+        _cutShader->Unbind();
+        _cutVertexArray->UnBind();
+    }
     
-    GL(Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-    _cutShader->SetUniformMat4("u_PVM", PVM);
-    _cutShader->SetUniformInt("u_textureSampler", 0);
-    _cutShader->SetUniformFloat("u_minTemp", g_minTemp);
-    _cutShader->SetUniformFloat("u_maxTemp", g_maxTemp);
-    _cutShader->SetUniformFloat("u_z", _cutZ);
-
-    _cutShader->Bind();
-    _tempTexture->BindToUnit(0);
-    _cutVertexArray->Bind();
-
-    GL(DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
-    
-    _cutShader->Unbind();
-    _cutVertexArray->UnBind();
 
     {
         ImGuiDraw imguiDraw = _imguiContext->Draw();
 
         ImGui::Begin("Test");
 
-        ImGui::SliderFloat("cut pos", &_cutZ, 0, 1);
+        ImGui::Checkbox("Z Cut", &_cutEnabled[0]);
+        if (_cutEnabled[0])
+            ImGui::SliderFloat("Z cut pos", &_cuts[0], 0, 1);
+        ImGui::Checkbox("Y Cut", &_cutEnabled[1]);
+        if (_cutEnabled[1])
+            ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
         
         ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
         ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);

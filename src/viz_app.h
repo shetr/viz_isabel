@@ -22,7 +22,8 @@ private:
     std::unique_ptr<VertexArray> _cutVertexArray;
     std::unique_ptr<Texture> _tempTexture;
 
-    float _cutZ = 0.5f;
+    std::array<bool, 2> _cutEnabled = {true, true};
+    std::array<float, 2> _cuts = {0.5f, 0.5f};
     float _maxTempValue = -std::numeric_limits<float>::infinity();
     float _minTempValue = std::numeric_limits<float>::infinity();
     Camera _camera;
