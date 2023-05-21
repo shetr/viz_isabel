@@ -28,20 +28,23 @@ void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
         std::cout << "Failed to read file: " << filename << std::endl;
         return;
     }
-    fread(out.data(), out.size()*sizeof(float), 1, f);
+    vector3d<float> temp(glm::uvec3(out.dim().x, out.dim().z, out.dim().y), 0.0f);
+    fread(temp.data(), temp.size()*sizeof(float), 1, f);
     fclose(f);
     // big endian to little endian
-    for (size_t i = 0; i < out.size(); ++i) {
-        uint32_t v = *(uint32_t*)&out[i];
+    for (size_t i = 0; i < temp.size(); ++i) {
+        uint32_t v = *(uint32_t*)&temp[i];
         v = _byteswap_ulong(v);
-        out[i] = *(float*)&v;
+        temp[i] = *(float*)&v;
     }
     // switch y and z axis
-    vector3d<float> swaped(glm::uvec3(out.dim().x, out.dim().z, out.dim().y), 0.0f);
-    for (size_t z = 0; z < swaped.dim().z; ++z)
-        for (size_t y = 0; y < swaped.dim().y; ++y)
-            for (size_t x = 0; x < swaped.dim().x; ++x)
-                swaped[x, y, z] = out[x, z, y];
+    for (size_t z = 0; z < out.dim().z; ++z) {
+        for (size_t y = 0; y < out.dim().y; ++y) {
+            for (size_t x = 0; x < out.dim().x; ++x) {
+                out(x, y, z) = temp(x, z, y);
+            }
+        }
+    }
 }
 
 void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
@@ -53,7 +56,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     std::string cutShaderFS = std::string(SHADERS_SRC_LOC) + "cut.fs";
     _cutShader = std::unique_ptr<Shader>(new Shader(cutShaderVS, cutShaderFS));
 
-    glm::uvec3 data_size(500, 500, 100);
+    glm::uvec3 data_size(500, 100, 500);
     _isabelTemp = vector3d(data_size, 0.0f);
     _isabelWind = vector3d(data_size, glm::vec3(0));
 

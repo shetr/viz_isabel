@@ -21,7 +21,7 @@ void main()
     };
     vec3 c1 = vec3(0, 0, 1);
     vec3 c2 = vec3(1, 0, 0);
-    float temp = float(texture(u_textureSampler, vec3(f_uv, u_z)));
+    float temp = float(texture(u_textureSampler, vec3(f_uv.x, f_uv.y, u_z)));
     float t = (clamp(temp, u_minTemp, u_maxTemp) - u_minTemp) / (u_maxTemp - u_minTemp);
     //vec3 c = vec3(0.0);
     //for (int i = 0; i < 4; ++i) {

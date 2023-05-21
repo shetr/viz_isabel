@@ -2,3 +2,4 @@ build
 data/*.bin
 data/*.bin.gz
 data/.md5_results
+imgui.ini
