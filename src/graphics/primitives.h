@@ -8,9 +8,4 @@ public:
     Primitive();
 };
 
-class Line
-{
-
-};
-
-void GenerateLines(vector3d<glm::vec3>& data);
+void GenerateLines(vector3d<glm::vec3>& data, std::vector<float> &pts);

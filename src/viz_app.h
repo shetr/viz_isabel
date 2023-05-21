@@ -8,6 +8,8 @@
 #include <graphics/texture.h>
 #include <graphics/camera.h>
 
+#include <graphics/primitives.h>
+
 class VizApp : public AppImpl
 {
 private:
@@ -21,6 +23,12 @@ private:
     std::unique_ptr<IndexBuffer> _cutIndexBuffer;
     std::unique_ptr<VertexArray> _cutVertexArray;
     std::unique_ptr<Texture> _tempTexture;
+    
+    std::unique_ptr<Shader> _lineShader;
+    std::unique_ptr<VertexBuffer> _lineVertexBuffer;
+    std::unique_ptr<IndexBuffer> _lineIndexBuffer;
+    std::unique_ptr<VertexArray> _lineVertexArray;
+    std::unique_ptr<Texture> _lineTexture;
 
     std::array<bool, 2> _cutEnabled = {true, true};
     std::array<float, 2> _cuts = {0.5f, 0.5f};

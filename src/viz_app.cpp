@@ -88,6 +88,18 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     GL(Disable(GL_CULL_FACE));
     GL(Enable(GL_DEPTH_TEST));
     GL(ClearColor(0, 0, 0, 1));
+
+    //_windData.data();
+    std::vector<float> _windPts(data_size.x * data_size.y * data_size.z * 3 * 2, 0.f); // array for uniform lines vbuffer 
+    GenerateLines(_isabelWind, _windPts);
+    
+    VertexLayout lineVerticesLayout = {
+        VertexElement(GL_FLOAT, 3)
+    };
+
+    _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(float), _windPts.data(), lineVerticesLayout));
+    //_lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_cutVertexBuffer));
+
 }
 
 void VizApp::Update(double deltaTime)
