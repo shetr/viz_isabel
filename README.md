@@ -20,3 +20,7 @@ To download all time points run:
 ```bash
 ./wget-isabeldata-all.sh
 ```
+
+## Dataset attribution
+
+The authors will like to thank Bill Kuo, Wei Wang, Cindy Bruyere, Tim Scheitlin, and Don Middleton of the U.S. National Center for Atmospheric Research (NCAR), and the U.S. National Science Foundation (NSF) for providing the Weather Research and Forecasting (WRF) Model simulation data of Hurricane Isabel.

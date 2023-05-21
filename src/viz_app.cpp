@@ -1,10 +1,20 @@
 #include "viz_app.h"
 
-float g_quad[] = {
-   -1.0, -1.0, 0.0,
-   -1.0, 1.0, 0.0,
-   1.0, 1.0, 0.0,
-   1.0, -1.0, 0.0,
+#include <numeric>
+
+#include <intrin.h>
+
+struct VertexPosUV
+{
+    glm::vec3 pos;
+    glm::vec2 uv;
+};
+
+VertexPosUV g_quad[] = {
+   {{-1.0, -1.0, 0.0}, {0, 0}},
+   {{-1.0,  1.0, 0.0}, {0, 1}},
+   {{ 1.0,  1.0, 0.0}, {1, 1}},
+   {{ 1.0, -1.0, 0.0}, {1, 0}}
 };
 int g_quadIndices[] = {0, 1, 2, 0, 2, 3};
 
@@ -35,19 +45,43 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _isabelTemp = vector3d(data_size, 0.0f);
     _isabelWind = vector3d(data_size, glm::vec3(0));
 
-    std::string tempFilename = std::string(DATA_LOC) + "TCf24.bin.gz";
+    std::string tempFilename = std::string(DATA_LOC) + "TCf24.bin";
     ReadVolumetricFile(tempFilename, _isabelTemp);
     char axis[3] = {'U', 'V', 'W'};
     vector3d<float> windAxis(data_size, 0.0f);
     for (int ax = 0; ax < 3; ++ax) {
-        std::string windAxisFilename = std::string(DATA_LOC) + axis[ax] + std::string("f24.bin.gz");
+        std::string windAxisFilename = std::string(DATA_LOC) + axis[ax] + std::string("f24.bin");
         ReadVolumetricFile(windAxisFilename, windAxis);
         for (size_t i = 0; i < windAxis.size(); ++i) {
             _isabelWind[i][ax] = windAxis[i];
         }
     }
+
     
-    _cutVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(4 * 3 * sizeof(float), g_quad, VertexLayout({VertexElement(GL_FLOAT, 3)})));
+    for (size_t i = 0; i < _isabelTemp.size(); ++i) {
+        uint32_t temp = *(uint32_t*)&_isabelTemp[i];
+        temp = _byteswap_ulong(temp);
+        _isabelTemp[i] = *(float*)&temp;
+    }
+
+    for (size_t i = 0; i < _isabelTemp.size(); ++i) {
+        if (_isabelTemp[i] > _maxTempValue) {
+            _maxTempValue = _isabelTemp[i];
+        }
+        if (_isabelTemp[i] < _minTempValue) {
+            _minTempValue = _isabelTemp[i];
+        }
+    }
+    std::cout << _minTempValue << ", " << _maxTempValue << std::endl;
+    //for (size_t i = 0; i < _isabelTemp.size(); ++i) {
+    //    _isabelTemp[i] = (_isabelTemp[i] - _minTempValue) / (_maxTempValue - _minTempValue);
+    //}
+    
+    VertexLayout cutVerticesLayout = {
+        VertexElement(GL_FLOAT, 3),
+        VertexElement(GL_FLOAT, 2)
+    };
+    _cutVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(4 * sizeof(VertexPosUV), g_quad, cutVerticesLayout));
     _cutIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(6 * sizeof(int), g_quadIndices));
     _cutVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_cutVertexBuffer, *_cutIndexBuffer));
 

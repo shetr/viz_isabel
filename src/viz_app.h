@@ -22,6 +22,8 @@ private:
     std::unique_ptr<Texture> _tempTexture;
 
     float _cutZ = 0.5f;
+    float _maxTempValue = -std::numeric_limits<float>::infinity();
+    float _minTempValue = std::numeric_limits<float>::infinity();
 public:
     VizApp() {}
     
