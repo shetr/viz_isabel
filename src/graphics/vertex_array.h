@@ -88,6 +88,8 @@ public:
     void Bind();
     void UnBind();
 private:
+    
+
     void EnableVertexAttribArray(int i);
     void VertexAttribPointer(int i, int count, int type, bool normalized, int stride, const void* offset);
     void VertexAttribDivisor(int i, int divisor);

@@ -11,10 +11,10 @@ struct VertexPosUV
 };
 
 VertexPosUV g_quad[] = {
-   {{-1.0, -1.0, 0.0}, {0, 0}},
-   {{-1.0,  1.0, 0.0}, {0, 1}},
-   {{ 1.0,  1.0, 0.0}, {1, 1}},
-   {{ 1.0, -1.0, 0.0}, {1, 0}}
+   {{-0.5, -0.5, 0.0}, {0, 0}},
+   {{-0.5,  0.5, 0.0}, {0, 1}},
+   {{ 0.5,  0.5, 0.0}, {1, 1}},
+   {{ 0.5, -0.5, 0.0}, {1, 0}}
 };
 int g_quadIndices[] = {0, 1, 2, 0, 2, 3};
 
@@ -30,6 +30,11 @@ void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
     }
     fread(out.data(), out.size()*sizeof(float), 1, f);
     fclose(f);
+    for (size_t i = 0; i < out.size(); ++i) {
+        uint32_t v = *(uint32_t*)&out[i];
+        v = _byteswap_ulong(v);
+        out[i] = *(float*)&v;
+    }
 }
 
 void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
@@ -56,26 +61,6 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
             _isabelWind[i][ax] = windAxis[i];
         }
     }
-
-    
-    for (size_t i = 0; i < _isabelTemp.size(); ++i) {
-        uint32_t temp = *(uint32_t*)&_isabelTemp[i];
-        temp = _byteswap_ulong(temp);
-        _isabelTemp[i] = *(float*)&temp;
-    }
-
-    for (size_t i = 0; i < _isabelTemp.size(); ++i) {
-        if (_isabelTemp[i] > _maxTempValue) {
-            _maxTempValue = _isabelTemp[i];
-        }
-        if (_isabelTemp[i] < _minTempValue) {
-            _minTempValue = _isabelTemp[i];
-        }
-    }
-    std::cout << _minTempValue << ", " << _maxTempValue << std::endl;
-    //for (size_t i = 0; i < _isabelTemp.size(); ++i) {
-    //    _isabelTemp[i] = (_isabelTemp[i] - _minTempValue) / (_maxTempValue - _minTempValue);
-    //}
     
     VertexLayout cutVerticesLayout = {
         VertexElement(GL_FLOAT, 3),
@@ -88,6 +73,8 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _tempTexture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_3D, GL_R32F, GL_RED, GL_FLOAT));
     _tempTexture->SetData3D(data_size.x, data_size.y, data_size.z, _isabelTemp.data());
 
+    GL(Disable(GL_CULL_FACE));
+    GL(Enable(GL_DEPTH_TEST));
     GL(ClearColor(0, 0, 0, 1));
 }
 
@@ -95,9 +82,21 @@ void VizApp::Update(double deltaTime)
 {
     glm::ivec2 winSize = _window->GetSize();
     GL(Viewport(0, 0, winSize.x, winSize.y));
-    
-    GL(Clear(GL_COLOR_BUFFER_BIT));
+    float aspectRatio = (float) winSize.x / (float) winSize.y;
+    float fov = glm::pi<float>() / 2.0f;
+    float near = 0.1;
+    float far = 10;
+    glm::mat4 P = glm::perspective(fov, aspectRatio, near, far);
 
+    glm::vec3 cutPos = glm::vec3(0, 0, _cutZ - 0.5f);
+    glm::mat4 M = glm::translate(cutPos);
+    glm::vec3 camPos = glm::vec3(0, 0, 1);
+    glm::mat4 V = glm::translate(-camPos) * glm::rotate(-glm::radians(_rotX), glm::vec3(-1, 0, 0)) * glm::rotate(-glm::radians(_rotY), glm::vec3(0, 1, 0));
+    glm::mat4 PVM = P * V * M;
+    
+    GL(Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    _cutShader->SetUniformMat4("u_PVM", PVM);
     _cutShader->SetUniformInt("u_textureSampler", 0);
     _cutShader->SetUniformFloat("u_minTemp", g_minTemp);
     _cutShader->SetUniformFloat("u_maxTemp", g_maxTemp);
@@ -118,6 +117,9 @@ void VizApp::Update(double deltaTime)
         ImGui::Begin("Test");
 
         ImGui::SliderFloat("cut pos", &_cutZ, 0, 1);
+        
+        ImGui::SliderFloat("rot y", &_rotY, -180, 180);
+        ImGui::SliderFloat("rot x", &_rotX, -89, 89);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
 

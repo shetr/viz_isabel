@@ -10,6 +10,6 @@ uniform mat4 u_PVM;
 void main()
 {
     f_uv = a_uv;
-    gl_Position = vec4(a_position, 1.0);
-    //gl_Position = u_PVM * vec4(a_position, 1);
+    //gl_Position = vec4(a_position, 1.0);
+    gl_Position = u_PVM * vec4(a_position, 1);
 }

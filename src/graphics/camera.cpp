@@ -1,6 +1,6 @@
 #include <graphics/camera.h>
 
-Camera::Camera() : _projectionMatrix(1.f), _viewMatrix(1.f), _position(0.f), _upVector(0.f, 1.f, 0.f), _viewDirection(1.f, 0.f, 0.f)
+Camera::Camera()
 {
 }
 
