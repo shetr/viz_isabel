@@ -36,11 +36,13 @@ private:
     float _maxVelocityValue = -std::numeric_limits<float>::infinity();
     float _minVelocityValue = std::numeric_limits<float>::infinity();
     
+    std::vector<VertexPosVel> _windPts;
+    std::vector<int> _windIndices;
+    
     std::unique_ptr<Shader> _lineShader;
     std::unique_ptr<VertexBuffer> _lineVertexBuffer;
     std::unique_ptr<IndexBuffer> _lineIndexBuffer;
     std::unique_ptr<VertexArray> _lineVertexArray;
-    std::unique_ptr<Texture> _lineTexture;
 
     Camera _camera;
     glm::vec2 _lastCursorPos;

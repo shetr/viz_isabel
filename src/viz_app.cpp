@@ -4,12 +4,6 @@
 
 #include <intrin.h>
 
-struct VertexPosUV
-{
-    glm::vec3 pos;
-    glm::vec2 uv;
-};
-
 VertexPosUV g_quad[] = {
    {{-0.5, -0.5, 0.0}, {0, 0}},
    {{-0.5,  0.5, 0.0}, {0, 1}},
@@ -97,26 +91,24 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     //_windPts.reserve(data_size.x * data_size.y * data_size.z * 3 * 2); // array for uniform lines vbuffer 
     //GenerateLines(_isabelWind, _windPts);
 
-    std::vector<float> _windPts;
-    std::vector<float> _windVelocity;
-    _windPts.reserve(data_size.x * data_size.z * 3 * 2); // array for uniform lines vbuffer 
-    _windVelocity.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer 
-    GenerateLinesLayerHorizontal(_isabelWind, 60, _windPts, _windVelocity);
+    _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
+    GenerateLinesLayerHorizontal(_isabelWind, 60, _windPts, _windIndices, 16);
 
-    for (auto& w : _windVelocity)
+    for (const VertexPosVel& vertex : _windPts)
     {
-        _maxVelocityValue = std::max(w, _maxVelocityValue);
-        _minVelocityValue = std::min(w, _minVelocityValue);
+        _maxVelocityValue = std::max(vertex.vel, _maxVelocityValue);
+        _minVelocityValue = std::min(vertex.vel, _minVelocityValue);
     }
-    _lineTexture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_3D, GL_R32F, GL_RED, GL_FLOAT));
-    _lineTexture->SetData3D(data_size.x, 1, data_size.z, _windVelocity.data());
 
     VertexLayout lineVerticesLayout = {
+        VertexElement(GL_FLOAT, 3),
+        VertexElement(GL_FLOAT, 1),
         VertexElement(GL_FLOAT, 3)
     };
 
-    _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(float), _windPts.data(), lineVerticesLayout));
-    _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer));
+    _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout));
+    _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data()));
+    _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer, *_lineIndexBuffer));
 }
 
 void VizApp::Update(double deltaTime)
@@ -176,13 +168,12 @@ void VizApp::Update(double deltaTime)
         _lineShader->SetUniformMat4("u_PVM", PVM);
         _lineShader->SetUniformFloat("u_minVelocity", _minVelocityValue);
         _lineShader->SetUniformFloat("u_maxVelocity", _maxVelocityValue);
-        _lineShader->SetUniformInt("u_textureSampler", 0);
-
 
         _lineShader->Bind();
         _lineVertexArray->Bind();
-
-        GL(DrawArrays(GL_LINES, 0, 500*500*2*3));
+        
+        //GL(DrawElements(GL_LINES, 500*500*2*3, GL_UNSIGNED_INT, 0));
+        GL(DrawElements(GL_TRIANGLES, _windIndices.size(), GL_UNSIGNED_INT, 0));
         
         _lineShader->Unbind();
         _lineVertexArray->UnBind();
