@@ -26,8 +26,9 @@ private:
     std::unique_ptr<VertexArray> _cutVertexArray;
     std::unique_ptr<Texture> _tempTexture;
 
-    std::array<bool, 2> _cutEnabled = {true, true};
-    std::array<float, 2> _cuts = {0.5f, 0.5f};
+    std::array<bool, 3> _tempCutEnabled = {false, true, true};
+    std::array<bool, 3> _windCutEnabled = {false, true, true};
+    std::array<float, 3> _cuts = {0.5f, 0.5f, 0.5f};
     glm::vec3 _coldColor = glm::vec3(0.0, 74.0, 193.0) / 255.f;
     glm::vec3 _zeroColor = glm::vec3(1.0);
     glm::vec3 _warmColor = glm::vec3(243.0, 43.0, 0.0) / 255.f;
@@ -50,6 +51,8 @@ private:
     float _minFOV = 30.0f;
     float _maxFOV = 90.0f;
     glm::vec2 _lastCursorPos;
+
+    unsigned int _axisNumSamples = 5;
 public:
     VizApp() {}
     

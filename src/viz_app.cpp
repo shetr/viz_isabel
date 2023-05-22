@@ -94,13 +94,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     //GenerateLines(_isabelWind, _windPts);
 
     _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
-    GenerateLinesLayerHorizontal(_isabelWind, _cuts[1], _windPts, _windIndices, 16);
-
-    for (const VertexPosVel& vertex : _windPts)
-    {
-        _maxVelocityValue = std::max(vertex.vel, _maxVelocityValue);
-        _minVelocityValue = std::min(vertex.vel, _minVelocityValue);
-    }
+    GenerateLinesLayerHorizontal(_isabelWind, Axis::Y, _cuts[1], _windPts, _windIndices, _axisNumSamples);
 
     VertexLayout lineVerticesLayout = {
         VertexElement(GL_FLOAT, 3),
@@ -135,21 +129,20 @@ void VizApp::Update(double deltaTime)
     }
     _camera.Recalculate(aspectRatio);
 
-    _windPts.clear();
-    _windIndices.clear();
-    GenerateLinesLayerHorizontal(_isabelWind, _cuts[1], _windPts, _windIndices, 16);
-    _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
-
     // draw temp cuts
-    for (int cut = 0; cut < (int)_cuts.size(); ++ cut) {
-        if (!_cutEnabled[cut]) {
+    for (int cut = 0; cut < 3; ++ cut) {
+        if (!_tempCutEnabled[cut]) {
             continue;
         }
         glm::mat4 M;
         if (cut == 0) {
-            M = glm::translate(glm::vec3(0, 0, _cuts[cut] - 0.5f));
-        } else {
+            M = glm::translate(glm::vec3(_cuts[cut] - 0.5f, 0, 0)) * glm::rotate(glm::radians(90.0f), glm::vec3(0, 1, 0));
+        }
+        if (cut == 1) {
             M = glm::translate(glm::vec3(0, _cuts[cut] - 0.5f, 0)) * glm::rotate(glm::radians(90.0f), glm::vec3(1, 0, 0));
+        }
+        if (cut == 2) {
+            M = glm::translate(glm::vec3(0, 0, _cuts[cut] - 0.5f));
         }
         glm::mat4 PVM = _camera.GetP() * _camera.GetV() * M;
 
@@ -175,8 +168,26 @@ void VizApp::Update(double deltaTime)
 
     }
     
+    
+    _maxVelocityValue = -std::numeric_limits<float>::infinity();
+    _minVelocityValue = std::numeric_limits<float>::infinity();
     // Draw wind line glyphs
+    for (int ax = 0; ax < 3; ++ax)
     {
+        if (!_windCutEnabled[ax]) {
+            continue;
+        }
+        _windPts.clear();
+        _windIndices.clear();
+        GenerateLinesLayerHorizontal(_isabelWind, static_cast<Axis>(ax), _cuts[ax], _windPts, _windIndices, _axisNumSamples);
+        _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
+
+        for (const VertexPosVel& vertex : _windPts)
+        {
+            _maxVelocityValue = std::max(vertex.vel, _maxVelocityValue);
+            _minVelocityValue = std::min(vertex.vel, _minVelocityValue);
+        }
+
         glm::mat4 PVM = _camera.GetP() * _camera.GetV();
 
         _lineShader->SetUniformMat4("u_PVM", PVM);
@@ -202,12 +213,15 @@ void VizApp::Update(double deltaTime)
         if (ImGui::BeginTabBar("##TabBar"))
         {
             if (ImGui::BeginTabItem("Main")) {
-                ImGui::Checkbox("Z Cut", &_cutEnabled[0]);
-                if (_cutEnabled[0])
-                    ImGui::SliderFloat("Z cut pos", &_cuts[0], 0, 1);
-                ImGui::Checkbox("Y Cut", &_cutEnabled[1]);
-                if (_cutEnabled[1])
+                ImGui::Checkbox("Temperature X Cut", &_tempCutEnabled[0]);
+                ImGui::Checkbox("Temperature Y Cut", &_tempCutEnabled[1]);
+                ImGui::Checkbox("Temperature Z Cut", &_tempCutEnabled[2]);
+                ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
+                ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
+                ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
+                ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
                 ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
+                ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
 
                 ImGui::EndTabItem();
             }

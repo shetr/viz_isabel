@@ -29,9 +29,13 @@ void main()
     vec3 c2 = vec3(1, 0, 0);
     vec3 texCoord = vec3(0, 0, 0);
     if (u_axis == 0) {
-        texCoord = vec3(f_uv.x, f_uv.y, u_shift);
-    } else {
+        texCoord = vec3(u_shift, f_uv.y, 1-f_uv.x);
+    }
+    if (u_axis == 1){
         texCoord = vec3(f_uv.x, u_shift, f_uv.y);
+    }
+    if (u_axis == 2) {
+        texCoord = vec3(f_uv.x, f_uv.y, u_shift);
     }
     float temp = float(texture(u_textureSampler, texCoord));
     if (temp > invalidTempLimit) {
