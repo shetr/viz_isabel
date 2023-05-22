@@ -13,6 +13,8 @@
 class VizApp : public AppImpl
 {
 private:
+    static VizApp* s_instance;
+
     Window* _window;
     VizImGuiContext* _imguiContext;
     vector3d<float> _isabelTemp; 
@@ -45,6 +47,8 @@ private:
     std::unique_ptr<VertexArray> _lineVertexArray;
 
     Camera _camera;
+    float _minFOV = 30.0f;
+    float _maxFOV = 90.0f;
     glm::vec2 _lastCursorPos;
 public:
     VizApp() {}
@@ -52,4 +56,9 @@ public:
 protected:
     void Init(Window* window, VizImGuiContext* imguiContext) override;
     void Update(double deltaTime) override;
+
+private:
+    static void ErrorCallback(int code, const char* message);
+	static void SizeCallback(GLFWwindow* id, int width, int height);
+    static void ScrollCallback(GLFWwindow* id, double xoffset, double yoffset);
 };

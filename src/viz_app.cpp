@@ -41,10 +41,16 @@ void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
     }
 }
 
+VizApp* VizApp::s_instance = nullptr;
+
 void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 {
+    s_instance = this;
+
     _window = window;
     _imguiContext = imguiContext;
+    
+    glfwSetErrorCallback(&ErrorCallback);
 
     std::string cutShaderVS = std::string(SHADERS_SRC_LOC) + "cut.vs";
     std::string cutShaderFS = std::string(SHADERS_SRC_LOC) + "cut.fs";
@@ -79,10 +85,6 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 
     _lastCursorPos = _window->GetCursorPosEye();
 
-    GL(Disable(GL_CULL_FACE));
-    GL(Enable(GL_DEPTH_TEST));
-    GL(ClearColor(0, 0, 0, 1));
-
     // Wind line glyph initialization
     std::string lineShaderVS = std::string(SHADERS_SRC_LOC) + "line.vs";
     std::string lineShaderFS = std::string(SHADERS_SRC_LOC) + "line.fs";
@@ -109,6 +111,13 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout));
     _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data()));
     _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer, *_lineIndexBuffer));
+
+    GL(Disable(GL_CULL_FACE));
+    GL(Enable(GL_DEPTH_TEST));
+    GL(ClearColor(0, 0, 0, 1));
+    
+    glfwSetWindowSizeCallback(_window->GetID(), &SizeCallback);
+    glfwSetScrollCallback(_window->GetID(), &ScrollCallback);
 }
 
 void VizApp::Update(double deltaTime)
@@ -121,8 +130,8 @@ void VizApp::Update(double deltaTime)
     glm::vec2 cursorPos = _window->GetCursorPosEye();
     glm::vec2 cursorDir = cursorPos - _lastCursorPos;
     if (!ImGui::IsAnyWindowHovered() && !ImGui::IsAnyWindowFocused() && _window->IsMouseButtonPressed(MouseButton::LEFT_1)) {
-        _camera.GetRotY() -= _camera.GetSpeed() * cursorDir.x;
-        _camera.GetRotX() -= _camera.GetSpeed() * cursorDir.y;
+        _camera.GetRotY() -= _camera.GetMovementSpeed() * cursorDir.x;
+        _camera.GetRotX() -= _camera.GetMovementSpeed() * cursorDir.y;
     }
     _camera.Recalculate(aspectRatio);
 
@@ -200,8 +209,8 @@ void VizApp::Update(double deltaTime)
         
         ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
         ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
-        ImGui::SliderFloat("cam speed", &_camera.GetSpeed(), 0, 500);
-        ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), 30.0, 90.0);
+        ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
+        ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
 
@@ -209,4 +218,26 @@ void VizApp::Update(double deltaTime)
     }
 
     _lastCursorPos = cursorPos;
+}
+
+void VizApp::ErrorCallback(int code, const char* message)
+{
+    std::cout << "GLFW error: " << message << std::endl;
+}
+
+void VizApp::SizeCallback(GLFWwindow* id, int width, int height)
+{
+    //std::cout << "Resized: " << width << ", " << height << std::endl;
+}
+
+void VizApp::ScrollCallback(GLFWwindow* id, double xoffset, double yoffset)
+{
+    //std::cout << "Scroll: " << xoffset << ", " << yoffset << std::endl;
+    s_instance->_camera.GetFOV() += (float)yoffset * s_instance->_camera.GetZoomSpeed();
+    if (s_instance->_camera.GetFOV() < s_instance->_minFOV) {
+        s_instance->_camera.GetFOV() = s_instance->_minFOV;
+    }
+    if (s_instance->_camera.GetFOV() > s_instance->_maxFOV) {
+        s_instance->_camera.GetFOV() = s_instance->_maxFOV;
+    }
 }

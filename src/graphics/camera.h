@@ -7,7 +7,8 @@ private:
 	float _FOV = 90.0f;
 	float _near = 0.1f;
 	float _far = 10.0f;
-	float _speed = 100.0f;
+	float _movementSpeed = 100.0f;
+	float _zoomSpeed = 5.0f;
 
     float _rotY = -50;
     float _rotX = 20;
@@ -33,7 +34,8 @@ public:
 
     float& GetRotY() { return _rotY; }
     float& GetRotX() { return _rotX; }
-    float& GetSpeed() { return _speed; }
+    float& GetMovementSpeed() { return _movementSpeed; }
+    float& GetZoomSpeed() { return _zoomSpeed; }
     float& GetFOV() { return _FOV; }
 
 	const glm::mat4& GetV() const { return _V; }
