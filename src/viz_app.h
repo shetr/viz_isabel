@@ -56,6 +56,7 @@ public:
 protected:
     void Init(Window* window, VizImGuiContext* imguiContext) override;
     void Update(double deltaTime) override;
+    void Shutdown() override;
 
 private:
     static void ErrorCallback(int code, const char* message);

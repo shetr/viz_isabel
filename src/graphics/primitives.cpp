@@ -1,18 +1,19 @@
 #include <graphics/primitives.h>
 
-glm::vec3 TrilinearInterpolation(vector3d<glm::vec3>& data, glm::vec3 coords)
+glm::vec3 TrilinearInterpolation(const vector3d<glm::vec3>& data, glm::vec3 coords)
 {
-    glm::vec3 c000 = glm::vec3(std::floor(coords.x), std::floor(coords.y), std::floor(coords.z));
-    glm::vec3 c001 = glm::vec3(std::floor(coords.x), std::floor(coords.y), std::ceil(coords.z));
-    glm::vec3 c010 = glm::vec3(std::floor(coords.x), std::ceil(coords.y), std::floor(coords.z));
-    glm::vec3 c011 = glm::vec3(std::floor(coords.x), std::ceil(coords.y), std::ceil(coords.z));
+    glm::vec3 coords000 = glm::uvec3((unsigned int)std::floor(coords.x), (unsigned int)std::floor(coords.y), (unsigned int)std::floor(coords.z));
+    glm::vec3 c000 = data[coords000];
+    glm::vec3 c001 = data[glm::uvec3((unsigned int)std::floor(coords.x), (unsigned int)std::floor(coords.y), (unsigned int)std::ceil(coords.z))];
+    glm::vec3 c010 = data[glm::uvec3((unsigned int)std::floor(coords.x), (unsigned int)std::ceil(coords.y), (unsigned int)std::floor(coords.z))];
+    glm::vec3 c011 = data[glm::uvec3((unsigned int)std::floor(coords.x), (unsigned int)std::ceil(coords.y), (unsigned int)std::ceil(coords.z))];
     
-    glm::vec3 c100 = glm::vec3(std::ceil(coords.x), std::floor(coords.y), std::floor(coords.z));
-    glm::vec3 c110 = glm::vec3(std::ceil(coords.x), std::ceil(coords.y), std::floor(coords.z));
-    glm::vec3 c101 = glm::vec3(std::ceil(coords.x), std::floor(coords.y), std::ceil(coords.z));
-    glm::vec3 c111 = glm::vec3(std::ceil(coords.x), std::ceil(coords.y), std::ceil(coords.z));
+    glm::vec3 c100 = data[glm::uvec3((unsigned int)std::ceil(coords.x), (unsigned int)std::floor(coords.y), (unsigned int)std::floor(coords.z))];
+    glm::vec3 c110 = data[glm::uvec3((unsigned int)std::ceil(coords.x), (unsigned int)std::ceil(coords.y), (unsigned int)std::floor(coords.z))];
+    glm::vec3 c101 = data[glm::uvec3((unsigned int)std::ceil(coords.x), (unsigned int)std::floor(coords.y), (unsigned int)std::ceil(coords.z))];
+    glm::vec3 c111 = data[glm::uvec3((unsigned int)std::ceil(coords.x), (unsigned int)std::ceil(coords.y), (unsigned int)std::ceil(coords.z))];
     
-    glm::vec3 f = coords - c000;
+    glm::vec3 f = coords - coords000;
 
     glm::vec3 val = 
         c000 * (1.0f - f.x) * (1.0f - f.y) * (1.0f - f.z) + 
@@ -29,9 +30,11 @@ glm::vec3 TrilinearInterpolation(vector3d<glm::vec3>& data, glm::vec3 coords)
 
 void GenLineSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, glm::vec3 cellSize, glm::vec3 lineSize)
 {
+    glm::vec3 datapos = TrilinearInterpolation(data, pos);
+
     glm::vec3 s = (pos * cellSize) - 0.5f; //start position
-    glm::vec3 e = s + (glm::normalize(data[pos]) * lineSize); // start position + vec direction normalized
-    float vel = std::sqrt(glm::dot(data[pos], data[pos]));
+    glm::vec3 e = s + (glm::normalize(datapos) * lineSize); // start position + vec direction normalized
+    float vel = std::sqrt(glm::dot(datapos, datapos));
     pts.push_back({s, vel});
     pts.push_back({e, vel});
     indices.push_back(index);
@@ -59,9 +62,12 @@ void GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int
 {
     const int numSegments = 6;
     float tubeSize = cellSize.x;
-    float vel = std::sqrt(glm::dot(data[pos], data[pos]));
+
+    glm::vec3 datapos = TrilinearInterpolation(data, pos);
+
+    float vel = std::sqrt(glm::dot(datapos, datapos));
     glm::vec3 s = (pos * cellSize) - 0.5f;
-    glm::vec3 dir = glm::normalize(data[pos]);
+    glm::vec3 dir = glm::normalize(datapos);
     const float epsilon = 1e-9;
     double length = sqrt(dir.x * dir.x + dir.y * dir.y);
     glm::vec3 uDir;
@@ -97,21 +103,23 @@ void GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int
     }
 }
 
-void GenerateLinesLayerHorizontal(const vector3d<glm::vec3>& data, unsigned int level, std::vector<VertexPosVel> &pts, std::vector<int> &indices, unsigned int spacing)
+void GenerateLinesLayerHorizontal(const vector3d<glm::vec3>& data, float cutPos, std::vector<VertexPosVel> &pts, std::vector<int> &indices, unsigned int spacing)
 {
+    float level = cutPos * data.dim().y;
+
     glm::vec3 cellSize = glm::vec3(1.f / data.dim().x, 1.f / data.dim().y, 1.f / data.dim().z);
     glm::vec3 lineSize = glm::vec3(1.f/data.dim().x) * glm::vec3(spacing);
 
     bool first = true;
     unsigned int i = 0;
     // uniform generation
-    for (unsigned int y = level ; y <= level; y++)
+    //for (unsigned int y = level ; y <= level; y++)
     {
         for (unsigned int z = 0; z < data.dim().z; z += spacing)
         {
             for (unsigned int x = 0; x < data.dim().x; x += spacing)
             {
-                GenTubeSegment(data, glm::vec3(x, y, z), i, pts, indices, cellSize, lineSize);
+                GenTubeSegment(data, glm::vec3((float)x, (float)level, (float)z), i, pts, indices, cellSize, lineSize);
             }
         }
     }

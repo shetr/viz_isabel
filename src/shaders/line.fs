@@ -8,7 +8,11 @@ uniform float u_maxVelocity = 0;
 uniform vec3 u_highColor = vec3(1.0, 0.0, 0.0);
 uniform vec3 u_lowColor = vec3(0.0, 1.0, 0.0);
 
+uniform vec3 u_lightDir = vec3(0.2, -1.0, 0.2);
+
 in float f_vel;
+in vec3 f_position;
+in vec3 f_normal;;
 
 void main()
 {

@@ -94,7 +94,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     //GenerateLines(_isabelWind, _windPts);
 
     _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
-    GenerateLinesLayerHorizontal(_isabelWind, 60, _windPts, _windIndices, 16);
+    GenerateLinesLayerHorizontal(_isabelWind, _cuts[1], _windPts, _windIndices, 16);
 
     for (const VertexPosVel& vertex : _windPts)
     {
@@ -108,7 +108,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
         VertexElement(GL_FLOAT, 3)
     };
 
-    _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout));
+    _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout, GL_DYNAMIC_STORAGE_BIT));
     _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data()));
     _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer, *_lineIndexBuffer));
 
@@ -134,6 +134,11 @@ void VizApp::Update(double deltaTime)
         _camera.GetRotX() -= _camera.GetMovementSpeed() * cursorDir.y;
     }
     _camera.Recalculate(aspectRatio);
+
+    _windPts.clear();
+    _windIndices.clear();
+    GenerateLinesLayerHorizontal(_isabelWind, _cuts[1], _windPts, _windIndices, 16);
+    _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
 
     // draw temp cuts
     for (int cut = 0; cut < (int)_cuts.size(); ++ cut) {
@@ -188,31 +193,44 @@ void VizApp::Update(double deltaTime)
         _lineVertexArray->UnBind();
     }
     
-
+    
     {
         ImGuiDraw imguiDraw = _imguiContext->Draw();
 
         ImGui::Begin("Test");
-
-        ImGui::Checkbox("Z Cut", &_cutEnabled[0]);
-        if (_cutEnabled[0])
-            ImGui::SliderFloat("Z cut pos", &_cuts[0], 0, 1);
-        ImGui::Checkbox("Y Cut", &_cutEnabled[1]);
-        if (_cutEnabled[1])
-            ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
         
-        ImGui::Text("Cut colors");
-        ImGui::ColorEdit3("cold color", &_coldColor[0]);
-        ImGui::ColorEdit3("zero color", &_zeroColor[0]);
-        ImGui::ColorEdit3("warm color", &_warmColor[0]);
-        ImGui::ColorEdit3("invalid color", &_invalidColor[0]);
-        
-        ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
-        ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
-        ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
-        ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
+        if (ImGui::BeginTabBar("##TabBar"))
+        {
+            if (ImGui::BeginTabItem("Main")) {
+                ImGui::Checkbox("Z Cut", &_cutEnabled[0]);
+                if (_cutEnabled[0])
+                    ImGui::SliderFloat("Z cut pos", &_cuts[0], 0, 1);
+                ImGui::Checkbox("Y Cut", &_cutEnabled[1]);
+                if (_cutEnabled[1])
+                ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
 
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Other")) {
+                ImGui::Text("Cut colors");
+                ImGui::ColorEdit3("cold color", &_coldColor[0]);
+                ImGui::ColorEdit3("zero color", &_zeroColor[0]);
+                ImGui::ColorEdit3("warm color", &_warmColor[0]);
+                ImGui::ColorEdit3("invalid color", &_invalidColor[0]);
+                
+                ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
+                ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
+                ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
+                ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
+                
+                ImGui::EndTabItem();
+            }
+            
+            ImGui::EndTabBar();
+        }
 
         ImGui::End();
     }
@@ -220,9 +238,16 @@ void VizApp::Update(double deltaTime)
     _lastCursorPos = cursorPos;
 }
 
+void VizApp::Shutdown()
+{
+    s_instance = nullptr;
+}
+
 void VizApp::ErrorCallback(int code, const char* message)
 {
-    std::cout << "GLFW error: " << message << std::endl;
+    if (s_instance) {
+        std::cout << "GLFW error: " << message << std::endl;
+    }
 }
 
 void VizApp::SizeCallback(GLFWwindow* id, int width, int height)

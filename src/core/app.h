@@ -9,6 +9,7 @@ class AppImpl
 public:
     virtual void Init(Window* window, VizImGuiContext* imguiContext) = 0;
     virtual void Update(double deltaTime) = 0;
+    virtual void Shutdown() = 0;
 };
 
 class App

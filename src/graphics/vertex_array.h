@@ -47,8 +47,8 @@ protected:
     GLenum _target;
     int _size;
 protected:
-    GraphicsBuffer(GLenum target, int size) : GraphicsBuffer(target, size, nullptr) {}
-    GraphicsBuffer(GLenum target, int size, const void* data);
+    GraphicsBuffer(GLenum target, int size, GLbitfield flags = 0) : GraphicsBuffer(target, size, nullptr, flags) {}
+    GraphicsBuffer(GLenum target, int size, const void* data, GLbitfield flags = 0);
     ~GraphicsBuffer();
 public:
     void SetData(int offset, int size, const void* data);
@@ -63,7 +63,8 @@ private:
     VertexLayout _layout;
 public:
     VertexBuffer(int size, const VertexLayout& layout) : GraphicsBuffer(GL_ARRAY_BUFFER, size), _layout(layout) {}
-    VertexBuffer(int size, const void* data, const VertexLayout& layout) : GraphicsBuffer(GL_ARRAY_BUFFER, size, data), _layout(layout) {}
+    VertexBuffer(int size, const void* data, const VertexLayout& layout, GLbitfield flags = 0)
+     : GraphicsBuffer(GL_ARRAY_BUFFER, size, data, flags), _layout(layout) {}
 
     inline const VertexLayout& GetLayout() const { return _layout; }
 };

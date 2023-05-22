@@ -59,12 +59,12 @@ int VertexLayout::ByteSize() const
     return size;
 }
 
-GraphicsBuffer::GraphicsBuffer(GLenum target, int size, const void* data)
+GraphicsBuffer::GraphicsBuffer(GLenum target, int size, const void* data, GLbitfield flags)
     : _target(target), _size(size)
 {
     GL(GenBuffers(1, &_id));
     Bind();
-    GL(BufferStorage(_target, size, data, 0));
+    GL(BufferStorage(_target, size, data, flags));
     UnBind();
 }
 

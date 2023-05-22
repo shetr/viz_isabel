@@ -5,6 +5,8 @@ layout(location = 1) in float a_vel;
 layout(location = 2) in float a_normal;
 
 out float f_vel;
+out vec3 f_position;
+out vec3 f_normal;;
 
 uniform mat4 u_PVM;
 

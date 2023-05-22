@@ -35,4 +35,5 @@ void App::Run()
         deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(now - start).count();
         start = now;
     }
+    _appImpl->Shutdown();
 }
