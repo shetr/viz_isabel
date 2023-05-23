@@ -15,6 +15,81 @@ int g_quadIndices[] = {0, 1, 2, 0, 2, 3};
 const float g_minTemp = -83.00402f;
 const float g_maxTemp = 31.51576;
 
+const float g_invalidValueLimit = 1.0e34;
+
+Gradient::Gradient(float pos, ImVec4 col) : position(pos), color(col)
+{
+
+}
+
+
+void VizApp::GradientGeneratorWindow()
+{
+    if (ImGui::Begin(("Gradient color editor##")))
+    {
+        static int totalBarWidth = 255;
+        static int focusedGradient = -1;
+
+        if (ImGui::Button("Add Gradient"))
+        {
+            if (_gradients.size() > 0)
+            {
+                auto& posVal = _gradients[_gradients.size() - 1].position;
+                posVal *= 0.5f;
+                _gradients.push_back(Gradient(posVal, ImVec4(1,0,1,1)));
+            }
+            else
+            {
+                _gradients.push_back(Gradient(1.f, ImVec4(1,0,1,1)));
+            }
+            focusedGradient = -1;
+        }
+
+        float sum_max = totalBarWidth;
+
+        for (size_t i = 0; i < _gradients.size(); i++)
+        {
+            auto& col = _gradients[i].color;
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, col);
+            float oldVal = _gradients[i].position;
+
+            auto& width = _gradients[i].position;
+            oldVal = _gradients[i].position;
+
+            ImGui::SetNextItemWidth(width * 100);
+            if (ImGui::DragFloat(("##colgrad" + std::to_string(i)).c_str(), &width, 0.01f, 1.f, sum_max))
+            {
+                float diff = _gradients[i].position - oldVal;
+                if (_gradients.size() > 1)
+                {
+                    if (i >= 1)
+                    {
+                        _gradients[i - 1].position -= diff;
+                    }
+                    else if (i + 1 < _gradients.size())
+                    {
+                        _gradients[i + 1].position -= diff;
+                    }
+                }
+                
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                {
+                    focusedGradient = i;
+                }
+                
+                ImGui::PopStyleColor();
+                if (i + 1 != _gradients.size())
+                {
+                    ImGui::SameLine();
+                }
+            }
+        }
+    
+    ImGui::End();
+    }
+}
+
+
 void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
 {
     FILE* f = fopen(filename.c_str(), "r");
@@ -68,8 +143,22 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
         std::string windAxisFilename = std::string(DATA_LOC) + axis[ax] + std::string("f24.bin");
         ReadVolumetricFile(windAxisFilename, windAxis);
         for (size_t i = 0; i < windAxis.size(); ++i) {
-            _isabelWind[i][ax] = windAxis[i];
+            if (windAxis[i] > g_invalidValueLimit) {
+                _isabelWind[i] = glm::vec3(0);
+            } else {
+                _isabelWind[i][ax] = windAxis[i];
+            }
         }
+    }
+    for (size_t i = 0; i < _isabelWind.size(); ++i) {
+        float vel = glm::length(_isabelWind[i]);
+        _maxGlobalVelocity = std::max(vel, _maxGlobalVelocity);
+        _minGlobalVelocity = std::min(vel, _minGlobalVelocity);
+    }
+    //std::cout << _minGlobalVelocity << std::endl;
+    //std::cout << _maxGlobalVelocity << std::endl;
+    for (size_t i = 0; i < _isabelWind.size(); ++i) {
+        _isabelWind[i] /= _maxGlobalVelocity;
     }
     
     VertexLayout cutVerticesLayout = {
@@ -94,7 +183,8 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     //GenerateLines(_isabelWind, _windPts);
 
     _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
-    GenerateLinesLayerHorizontal(_isabelWind, Axis::Y, _cuts[1], _windPts, _windIndices, _axisNumSamples);
+    _geomGen.GetAxisNumSamples() = _maxAxisNumSamples;
+    _geomGen.GenerateGeometry(_isabelWind, Axis::Y, _cuts[1], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
 
     VertexLayout lineVerticesLayout = {
         VertexElement(GL_FLOAT, 3),
@@ -103,7 +193,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     };
 
     _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout, GL_DYNAMIC_STORAGE_BIT));
-    _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data()));
+    _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data(), GL_DYNAMIC_STORAGE_BIT));
     _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer, *_lineIndexBuffer));
 
     GL(Disable(GL_CULL_FACE));
@@ -128,6 +218,8 @@ void VizApp::Update(double deltaTime)
         _camera.GetRotX() -= _camera.GetMovementSpeed() * cursorDir.y;
     }
     _camera.Recalculate(aspectRatio);
+
+    glm::vec3 cameraPosition = _camera.GetV() * glm::vec4(0, 0, 0, 1);
 
     // draw temp cuts
     for (int cut = 0; cut < 3; ++ cut) {
@@ -169,8 +261,8 @@ void VizApp::Update(double deltaTime)
     }
     
     
-    _maxVelocityValue = -std::numeric_limits<float>::infinity();
-    _minVelocityValue = std::numeric_limits<float>::infinity();
+    _maxLocalVelocity = -std::numeric_limits<float>::infinity();
+    _minLocalVelocity = std::numeric_limits<float>::infinity();
     // Draw wind line glyphs
     for (int ax = 0; ax < 3; ++ax)
     {
@@ -179,20 +271,27 @@ void VizApp::Update(double deltaTime)
         }
         _windPts.clear();
         _windIndices.clear();
-        GenerateLinesLayerHorizontal(_isabelWind, static_cast<Axis>(ax), _cuts[ax], _windPts, _windIndices, _axisNumSamples);
+        _geomGen.GenerateGeometry(_isabelWind, static_cast<Axis>(ax), _cuts[ax], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
         _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
+        _lineIndexBuffer->SetData(0, _windIndices.size() * sizeof(int), _windIndices.data());
 
-        for (const VertexPosVel& vertex : _windPts)
-        {
-            _maxVelocityValue = std::max(vertex.vel, _maxVelocityValue);
-            _minVelocityValue = std::min(vertex.vel, _minVelocityValue);
-        }
+        //for (const VertexPosVel& vertex : _windPts)
+        //{
+        //    _maxLocalVelocity = std::max(vertex.vel, _maxLocalVelocity);
+        //    _minLocalVelocity = std::min(vertex.vel, _minLocalVelocity);
+        //}
 
         glm::mat4 PVM = _camera.GetP() * _camera.GetV();
 
         _lineShader->SetUniformMat4("u_PVM", PVM);
-        _lineShader->SetUniformFloat("u_minVelocity", _minVelocityValue);
-        _lineShader->SetUniformFloat("u_maxVelocity", _maxVelocityValue);
+        //_lineShader->SetUniformFloat("u_minVelocity", _minGlobalVelocity);
+        //_lineShader->SetUniformFloat("u_maxVelocity", _maxGlobalVelocity);
+        _lineShader->SetUniformFloat("u_minVelocity", 0);
+        _lineShader->SetUniformFloat("u_maxVelocity", 1);
+
+        _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
+        _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
+        _lineShader->SetUniformFloat("u_shinines", _shinines);
 
         _lineShader->Bind();
         _lineVertexArray->Bind();
@@ -223,6 +322,11 @@ void VizApp::Update(double deltaTime)
                 ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
                 ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
 
+                ImGui::SliderInt("axis num. samples", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
+
+                static const char* geomType[] = { "streamlines", "arrows"};
+                ImGui::Combo("geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
+
                 ImGui::EndTabItem();
             }
 
@@ -238,6 +342,8 @@ void VizApp::Update(double deltaTime)
                 ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
                 ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
 
+                ImGui::SliderFloat("shinines", &_shinines, 1, 100);
+
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
                 
                 ImGui::EndTabItem();
@@ -245,8 +351,12 @@ void VizApp::Update(double deltaTime)
             
             ImGui::EndTabBar();
         }
-
         ImGui::End();
+        
+
+        {
+            //GradientGeneratorWindow();
+        }
     }
 
     _lastCursorPos = cursorPos;

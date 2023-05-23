@@ -6,7 +6,8 @@ enum class Axis
 {
     X = 0,
     Y,
-    Z
+    Z,
+    NONE
 };
 
 class Primitive
@@ -33,13 +34,33 @@ class Line
 
 };
 
-void GenLineSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, glm::vec3 cellSize, glm::vec3 lineLength);
+enum class GeometryType
+{
+    STREAMSLINES = 0,
+    ARROWS
+};
 
-void GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, glm::vec3 cellSize, glm::vec3 lineLength);
+class GeometryGenerator
+{
+private:
+    unsigned int _axisNumSamples = 30;
+    float _spacing;
+    float _cellSize;
+    float _lineLength;
+public:
+    typedef void (GeometryGenerator::*GenGeomFunc)(const vector3d<glm::vec3>&, glm::vec3, unsigned int&, std::vector<VertexPosVel> &, std::vector<int>&);
 
-void GenStreamline(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, glm::vec3 cellSize, glm::vec3 lineLength);
+    unsigned int& GetAxisNumSamples() { return _axisNumSamples; }
 
-void GenQuad(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, glm::vec3 x11, glm::vec3 x12, glm::vec3 x21, glm::vec3 x22, glm::vec3 n11, glm::vec3 n12, glm::vec3 n21, glm::vec3 n22);
+    void GenLineSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices);
 
-//void GenerateLines(vector3d<glm::vec3>& data);VertexPosVel
-void GenerateLinesLayerHorizontal(const vector3d<glm::vec3>& data, Axis axis, float cutPos, std::vector<VertexPosVel> &pts, std::vector<int> &indices, unsigned int numSamples);
+    void GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices);
+
+    void GenStreamline(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices);
+
+    void GenQuad(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, glm::vec3 x11, glm::vec3 x12, glm::vec3 x21, glm::vec3 x22, glm::vec3 n11, glm::vec3 n12, glm::vec3 n21, glm::vec3 n22);
+
+    //void GenerateLines(vector3d<glm::vec3>& data);VertexPosVel
+    void GenerateGeometry(const vector3d<glm::vec3>& data, Axis axis, float cutPos, std::vector<VertexPosVel> &pts, std::vector<int> &indices, GenGeomFunc genGeomFunc);
+
+};

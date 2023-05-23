@@ -105,6 +105,8 @@ public:
         assert(a_dim.x*a_dim.y*m_dim.z == m_data.size());
     }
 
+    inline bool is_in_range(glm::vec3 v) const { return v.x >= 0 && v.y >= 0 && v.z >= 0 && v.x <= m_dim.x - 1 && v.y <= m_dim.y - 1 && v.z <= m_dim.z - 1; }
+
     inline size_t index(glm::uvec3 i) const { return i.x + i.y*m_dim.x + i.z*m_dim.x*m_dim.y; }
     inline size_t index(size_t x, size_t y, size_t z) const { return x + y*m_dim.x + z*m_dim.x*m_dim.y; }
     inline T& operator[](size_t i) { return m_data[i]; }

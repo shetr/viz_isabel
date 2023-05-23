@@ -74,7 +74,7 @@ class IndexBuffer : public GraphicsBuffer
 {
 public:
     IndexBuffer(int size) : GraphicsBuffer(GL_ELEMENT_ARRAY_BUFFER, size) {}
-    IndexBuffer(int size, const int* data) : GraphicsBuffer(GL_ELEMENT_ARRAY_BUFFER, size, data) {}
+    IndexBuffer(int size, const int* data, GLbitfield flags = 0) : GraphicsBuffer(GL_ELEMENT_ARRAY_BUFFER, size, data, flags) {}
 };
 
 class VertexArray
