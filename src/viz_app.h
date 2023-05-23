@@ -13,9 +13,9 @@
 class Gradient
 {
 public:
-    ImVec4 color;
-    float position;
-    Gradient(float pos, ImVec4 col);
+    glm::vec4 color;
+    float weight;
+    Gradient(float pos, glm::vec4 col);
 };
 
 class VizApp : public AppImpl
@@ -25,9 +25,17 @@ private:
 
     Window* _window;
     VizImGuiContext* _imguiContext;
+    vector3d<float> _isabelHgt; 
     vector3d<float> _isabelTemp; 
     vector3d<glm::vec3> _isabelWind;
     GeometryGenerator _geomGen;
+    
+    std::unique_ptr<Shader> _hgtShader;
+    std::vector<VertexPosVel> _hgtPts;
+    std::vector<int> _hgtIndices;
+    std::unique_ptr<VertexBuffer> _hgtVertexBuffer;
+    std::unique_ptr<IndexBuffer> _hgtIndexBuffer;
+    std::unique_ptr<VertexArray> _hgtVertexArray;
     
     std::unique_ptr<Shader> _cutShader;
     std::unique_ptr<VertexBuffer> _cutVertexBuffer;
@@ -36,6 +44,7 @@ private:
     std::unique_ptr<Texture> _tempTexture;
 
     std::array<bool, 3> _tempCutEnabled = {false, true, true};
+    int _useCuts = 1;
     std::array<bool, 3> _windCutEnabled = {false, true, true};
     std::array<float, 3> _cuts = {0.2f, 0.5f, 0.2f};
     glm::vec3 _coldColor = glm::vec3(0.0, 74.0, 193.0) / 255.f;
@@ -72,7 +81,7 @@ private:
     GeometryType _geomType = GeometryType::STREAMSLINES;
     std::array<GeometryGenerator::GenGeomFunc, 2> _genGeomFuncs = {
         &GeometryGenerator::GenStreamline,
-        &GeometryGenerator::GenTubeSegment
+        &GeometryGenerator::GenArrow
     };
     std::vector<Gradient> _gradients;
 public:
@@ -83,6 +92,7 @@ protected:
     void Update(double deltaTime) override;
     void Shutdown() override;
 
+    glm::vec4 ComputeInterpolatedColor(float val);
     void GradientGeneratorWindow();
 
 private:

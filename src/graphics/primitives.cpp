@@ -33,18 +33,15 @@ glm::vec3 TrilinearInterpolation(const vector3d<glm::vec3>& data, glm::vec3 coor
     return val;
 }
 
-void GeometryGenerator::GenLineSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
+void GeometryGenerator::GenTriangle(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, glm::vec3 x1, glm::vec3 x2, glm::vec3 x3, glm::vec3 n1, glm::vec3 n2, glm::vec3 n3)
 {
-    glm::vec3 datapos = TrilinearInterpolation(data, pos);
-
-    glm::vec3 s = (pos * _cellSize) - 0.5f; //start position
-    glm::vec3 e = s + (glm::normalize(datapos) * _lineLength); // start position + vec direction normalized
-    float vel = std::sqrt(glm::dot(datapos, datapos));
-    pts.push_back({s, vel});
-    pts.push_back({e, vel});
-    indices.push_back(index);
+    pts.push_back({x1, vel, n1});
+    pts.push_back({x2, vel, n2});
+    pts.push_back({x3, vel, n3});
+    indices.push_back(index + 0);
     indices.push_back(index + 1);
-    index += 2;
+    indices.push_back(index + 2);
+    index += 3;
 }
 
 void GeometryGenerator::GenQuad(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, 
@@ -63,6 +60,20 @@ void GeometryGenerator::GenQuad(unsigned int& index, std::vector<VertexPosVel> &
     index += 4;
 }
 
+void GeometryGenerator::GenLineSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
+{
+    glm::vec3 datapos = TrilinearInterpolation(data, pos);
+
+    glm::vec3 s = (pos * _cellSize) - 0.5f; //start position
+    glm::vec3 e = s + (glm::normalize(datapos) * _lineLength); // start position + vec direction normalized
+    float vel = std::sqrt(glm::dot(datapos, datapos));
+    pts.push_back({s, vel});
+    pts.push_back({e, vel});
+    indices.push_back(index);
+    indices.push_back(index + 1);
+    index += 2;
+}
+
 glm::vec3 GetPerpendicualrTo(glm::vec3 dir)
 {
     double length = sqrt(dir.x * dir.x + dir.y * dir.y);
@@ -77,6 +88,64 @@ glm::vec3 GetPerpendicualrTo(glm::vec3 dir)
         v = glm::vec3(-dir.z / length, 0, dir.x / length);
     }
     return v;
+}
+
+void GeometryGenerator::GenArrow(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
+{
+    float tubeWidth = _cellSize;
+    const float bodyRatio = 0.7f;
+    const float tipSize = 2.5f;
+
+    glm::vec3 velDir = TrilinearInterpolation(data, pos);
+
+    float vel = std::sqrt(glm::dot(velDir, velDir));
+    glm::vec3 s = pos - 0.5f;
+    glm::vec3 dir = glm::normalize(velDir);
+    glm::vec3 uDir = GetPerpendicualrTo(dir);
+    glm::vec3 vDir = glm::cross(dir, uDir);
+    glm::vec3 uAxis = uDir * tubeWidth;
+    glm::vec3 vAxis = vDir * tubeWidth;
+    for (int i = 0; i < g_numSegments; ++i) {
+        float phi1 = (float)i * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float phi2 = ((float)i + 1.f) * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float u1 = glm::cos(phi1);
+        float v1 = glm::sin(phi1);
+        float u2 = glm::cos(phi2);
+        float v2 = glm::sin(phi2);
+
+        glm::vec3 x11 = s + u1 * uAxis + v1 * vAxis;
+        glm::vec3 x12 = x11 + dir * _lineLength * bodyRatio;
+        glm::vec3 x21 = s + u2 * uAxis + v2 * vAxis;
+        glm::vec3 x22 = x21 + dir * _lineLength * bodyRatio;
+
+        glm::vec3 n1 = u1 * uDir + v1 * vDir;
+        glm::vec3 n2 = u2 * uDir + v2 * vDir;
+
+        GenTriangle(index, pts, indices, vel, x11, x21, s, -dir, -dir, -dir);
+        GenQuad(index, pts, indices, vel, x11, x12, x21, x22, n1, n1, n2, n2);
+    }
+    s = s + dir * _lineLength * bodyRatio;
+    uAxis *= tipSize;
+    vAxis *= tipSize;
+    for (int i = 0; i < g_numSegments; ++i) {
+        float phi1 = (float)i * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float phi2 = ((float)i + 1.f) * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float u1 = glm::cos(phi1);
+        float v1 = glm::sin(phi1);
+        float u2 = glm::cos(phi2);
+        float v2 = glm::sin(phi2);
+
+        glm::vec3 x1 = s + u1 * uAxis + v1 * vAxis;
+        glm::vec3 x2 = s + u2 * uAxis + v2 * vAxis;
+        glm::vec3 x3 = s + dir * _lineLength * (1 - bodyRatio);
+
+        glm::vec3 n1 = u1 * uDir + v1 * vDir;
+        glm::vec3 n2 = u2 * uDir + v2 * vDir;
+        glm::vec3 n3 = dir;
+
+        GenTriangle(index, pts, indices, vel, x1, x2, s, -n3, -n3, -n3);
+        GenTriangle(index, pts, indices, vel, x1, x2, x3, n1, n1, n3);
+    }
 }
 
 void GeometryGenerator::GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
@@ -193,6 +262,32 @@ void GeometryGenerator::GenerateGeometry(const vector3d<glm::vec3>& data, Axis a
             {
                 (this->*genGeomFunc)(data, glm::vec3(x, y, z), i, pts, indices);
             }
+        }
+    }
+}
+
+void GeometryGenerator::HgtGeometry(const vector3d<float>& data, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
+{
+    unsigned int index = 0;
+    glm::vec3 n = glm::vec3(0, 1, 0);
+    
+    float maxHeight = 19835;
+    //for (int i = 0; i < data.size(); ++i) {
+    //    if (data[i] < 1.0e34)
+    //        maxHeight = std::max(maxHeight, data[i]);
+    //}
+    //std::cout << maxHeight <<std::endl;
+    glm::vec3 scale = data.dim() - glm::uvec3(1);
+    scale.y = maxHeight;
+    
+    for (unsigned int x = 0; x < data.dim().x - 1; ++x) {
+        for (unsigned int z = 0; z < data.dim().z - 1; ++z) {
+            glm::vec3 v11 = glm::vec3((float)x + 0, data(x + 0, 0, z + 0), (float)z + 0) / scale - glm::vec3(0.5f);
+            glm::vec3 v12 = glm::vec3((float)x + 0, data(x + 0, 0, z + 1), (float)z + 1) / scale - glm::vec3(0.5f);
+            glm::vec3 v21 = glm::vec3((float)x + 1, data(x + 1, 0, z + 0), (float)z + 0) / scale - glm::vec3(0.5f);
+            glm::vec3 v22 = glm::vec3((float)x + 1, data(x + 1, 0, z + 1), (float)z + 1) / scale - glm::vec3(0.5f);
+            n = glm::normalize(glm::cross(v12 - v11, v21 - v11));
+            GenQuad(index, pts, indices, 0, v11, v12, v21, v22, n, n, n, n);
         }
     }
 }

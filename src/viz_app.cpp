@@ -17,7 +17,38 @@ const float g_maxTemp = 31.51576;
 
 const float g_invalidValueLimit = 1.0e34;
 
-Gradient::Gradient(float pos, ImVec4 col) : position(pos), color(col)
+glm::vec4 VizApp::ComputeInterpolatedColor(float val)
+{
+    glm::vec4 ret = glm::vec4(1.f);
+
+    if (_gradients.size() > 1)
+    {
+        for (int i = 0; i < _gradients.size(); i++)
+        {
+            if (_gradients[i].weight >= val)
+            {   
+                if (i + 1 < _gradients.size())
+                {
+                    ret = _gradients[i].color * glm::vec4((val - _gradients[i].weight)) - _gradients[i + 1].color * glm::vec4((val - _gradients[i + 1].weight));
+                    return ret;
+                }
+                else
+                {
+                    ret = _gradients[i].color;
+                    return ret;
+                }
+            }
+        }
+    }
+    else if (_gradients.size() == 1)
+    {
+        return glm::vec4(_gradients[0].color.x, _gradients[0].color.y, _gradients[0].color.z, _gradients[0].color.w);
+    }
+
+    return ret;
+}
+
+Gradient::Gradient(float pos, glm::vec4 col) : weight(pos), color(col)
 {
 
 }
@@ -27,67 +58,121 @@ void VizApp::GradientGeneratorWindow()
 {
     if (ImGui::Begin(("Gradient color editor##")))
     {
-        static int totalBarWidth = 255;
         static int focusedGradient = -1;
 
         if (ImGui::Button("Add Gradient"))
         {
             if (_gradients.size() > 0)
             {
-                auto& posVal = _gradients[_gradients.size() - 1].position;
+                auto& posVal = _gradients[_gradients.size() - 1].weight;
                 posVal *= 0.5f;
-                _gradients.push_back(Gradient(posVal, ImVec4(1,0,1,1)));
+                _gradients.push_back(Gradient(posVal, glm::vec4(1,0,1,1)));
             }
             else
             {
-                _gradients.push_back(Gradient(1.f, ImVec4(1,0,1,1)));
+                _gradients.push_back(Gradient(1.f, glm::vec4(1,0,1,1)));
             }
             focusedGradient = -1;
         }
 
-        float sum_max = totalBarWidth;
-
+        float sum_max = 1.f;
+        
         for (size_t i = 0; i < _gradients.size(); i++)
         {
             auto& col = _gradients[i].color;
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, col);
-            float oldVal = _gradients[i].position;
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(col.x, col.y, col.z, col.w));
+            float oldVal = _gradients[i].weight;
+            auto& width = _gradients[i].weight;
 
-            auto& width = _gradients[i].position;
-            oldVal = _gradients[i].position;
-
-            ImGui::SetNextItemWidth(width * 100);
-            if (ImGui::DragFloat(("##colgrad" + std::to_string(i)).c_str(), &width, 0.01f, 1.f, sum_max))
+            ImGui::SetNextItemWidth(std::max(2.f, width * 100));
+            if (ImGui::DragFloat(("##colgrad" + std::to_string(i)).c_str(), &_gradients[i].weight, 0.001f, (1.f / 255.f), 1.f))
             {
-                float diff = _gradients[i].position - oldVal;
+                _gradients[i].weight = std::min(1.f, _gradients[i].weight);
+                _gradients[i].weight = std::max(1.f/255.f, _gradients[i].weight);
+                float diff = _gradients[i].weight - oldVal;
+                
                 if (_gradients.size() > 1)
                 {
                     if (i >= 1)
                     {
-                        _gradients[i - 1].position -= diff;
+                        auto& w = _gradients[i - 1].weight;
+                        w -= diff;
+                        w = std::min(1.f, w);
+                        w = std::max(1.f/255.f, w);
                     }
-                    else if (i + 1 < _gradients.size())
+                    else if (i + 1 < _gradients.size()) // i == 0 and has a next gradient to it, subtracts from the right one
                     {
-                        _gradients[i + 1].position -= diff;
+                        {
+                            auto& w = _gradients[i + 1].weight;
+                            w -= diff;
+                            w = std::min(1.f, w);
+                            w = std::max(1.f/255.f, w);                        
+                        }
                     }
                 }
-                
-                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                else
                 {
-                    focusedGradient = i;
-                }
-                
-                ImGui::PopStyleColor();
-                if (i + 1 != _gradients.size())
-                {
-                    ImGui::SameLine();
+                    _gradients[i].weight = 1.f;
                 }
             }
+            
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            {
+                focusedGradient = i;
+            }
+            
+            ImGui::PopStyleColor();
+
+            
+            if (i + 1 < _gradients.size())
+            {
+                ImGui::SameLine();
+            }
+        
         }
-    
+        if (focusedGradient >= 0 && focusedGradient < _gradients.size())
+        {
+            static bool shouldUnfocus = false;
+            if (ImGui::BeginChild("Gradient", {0,100}, true, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::ColorEdit3("Color picker", (float*)&_gradients[focusedGradient].color);
+
+            }
+
+            if (ImGui::Button("Delete"))
+            {
+                _gradients.erase(_gradients.begin() + focusedGradient);
+                    
+                if (!_gradients.empty())
+                {
+                    float sum = 0;
+
+                    for (size_t i = 0; i < _gradients.size(); i++)
+                    {
+                        sum += _gradients[i].weight;
+                    }
+
+                    if (sum != 1.f)
+                    {
+                        _gradients[_gradients.size() - 1].weight -= sum - 1.f;
+                    }
+
+                    shouldUnfocus = true;
+                }
+            }
+
+            if (shouldUnfocus)
+            {
+                shouldUnfocus = false;
+                focusedGradient = -1;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndChild();
+        }
     ImGui::End();
     }
 }
+
 
 
 void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
@@ -132,9 +217,12 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _cutShader = std::unique_ptr<Shader>(new Shader(cutShaderVS, cutShaderFS));
 
     glm::uvec3 data_size(500, 100, 500);
+    _isabelHgt = vector3d(glm::uvec3(500, 1, 500), 0.0f);
     _isabelTemp = vector3d(data_size, 0.0f);
     _isabelWind = vector3d(data_size, glm::vec3(0));
 
+    std::string hgtFilename = std::string(DATA_LOC) + "HGTdata.bin";
+    ReadVolumetricFile(hgtFilename, _isabelHgt);
     std::string tempFilename = std::string(DATA_LOC) + "TCf24.bin";
     ReadVolumetricFile(tempFilename, _isabelTemp);
     char axis[3] = {'U', 'W', 'V'};
@@ -160,6 +248,20 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     for (size_t i = 0; i < _isabelWind.size(); ++i) {
         _isabelWind[i] /= _maxGlobalVelocity;
     }
+
+    // hgt init
+    std::string hgtShaderVS = std::string(SHADERS_SRC_LOC) + "hgt.vs";
+    std::string hgtShaderFS = std::string(SHADERS_SRC_LOC) + "hgt.fs";
+    _hgtShader = std::unique_ptr<Shader>(new Shader(hgtShaderVS, hgtShaderFS));
+    _geomGen.HgtGeometry(_isabelHgt, _hgtPts, _hgtIndices);
+    VertexLayout hgtVerticesLayout = {
+        VertexElement(GL_FLOAT, 3),
+        VertexElement(GL_FLOAT, 1),
+        VertexElement(GL_FLOAT, 3)
+    };
+    _hgtVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_hgtPts.size() * sizeof(VertexPosVel), _hgtPts.data(), hgtVerticesLayout));
+    _hgtIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_hgtIndices.size() * sizeof(int), _hgtIndices.data()));
+    _hgtVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_hgtVertexBuffer, *_hgtIndexBuffer));
     
     VertexLayout cutVerticesLayout = {
         VertexElement(GL_FLOAT, 3),
@@ -184,7 +286,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 
     _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
     _geomGen.GetAxisNumSamples() = _maxAxisNumSamples;
-    _geomGen.GenerateGeometry(_isabelWind, Axis::Y, _cuts[1], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
+    _geomGen.GenerateGeometry(_isabelWind, Axis::NONE, _cuts[1], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
 
     VertexLayout lineVerticesLayout = {
         VertexElement(GL_FLOAT, 3),
@@ -220,6 +322,24 @@ void VizApp::Update(double deltaTime)
     _camera.Recalculate(aspectRatio);
 
     glm::vec3 cameraPosition = _camera.GetV() * glm::vec4(0, 0, 0, 1);
+
+    // draw hgt map
+    {
+        glm::mat4 PVM = _camera.GetP() * _camera.GetV();
+
+        _hgtShader->SetUniformMat4("u_PVM", PVM);
+        _hgtShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
+        _hgtShader->SetUniformFloat3("u_lightDir", _lightDir);
+        _hgtShader->SetUniformFloat("u_shinines", _shinines);
+
+        _hgtShader->Bind();
+        _hgtVertexArray->Bind();
+        
+        GL(DrawElements(GL_TRIANGLES, _hgtIndices.size(), GL_UNSIGNED_INT, 0));
+        
+        _hgtShader->Unbind();
+        _hgtVertexArray->UnBind();
+    }
 
     // draw temp cuts
     for (int cut = 0; cut < 3; ++ cut) {
@@ -260,35 +380,60 @@ void VizApp::Update(double deltaTime)
 
     }
     
-    
     _maxLocalVelocity = -std::numeric_limits<float>::infinity();
     _minLocalVelocity = std::numeric_limits<float>::infinity();
     // Draw wind line glyphs
-    for (int ax = 0; ax < 3; ++ax)
-    {
-        if (!_windCutEnabled[ax]) {
-            continue;
+    if (_useCuts) {
+        for (int ax = 0; ax < 3; ++ax)
+        {
+            if (!_windCutEnabled[ax]) {
+                continue;
+            }
+            _windPts.clear();
+            _windIndices.clear();
+            _geomGen.GenerateGeometry(_isabelWind, static_cast<Axis>(ax), _cuts[ax], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
+            _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
+            _lineIndexBuffer->SetData(0, _windIndices.size() * sizeof(int), _windIndices.data());
+
+            //for (const VertexPosVel& vertex : _windPts)
+            //{
+            //    _maxLocalVelocity = std::max(vertex.vel, _maxLocalVelocity);
+            //    _minLocalVelocity = std::min(vertex.vel, _minLocalVelocity);
+            //}
+
+            glm::mat4 PVM = _camera.GetP() * _camera.GetV();
+
+            _lineShader->SetUniformMat4("u_PVM", PVM);
+            //_lineShader->SetUniformFloat("u_minVelocity", _minGlobalVelocity);
+            //_lineShader->SetUniformFloat("u_maxVelocity", _maxGlobalVelocity);
+            _lineShader->SetUniformFloat("u_minVelocity", 0);
+            _lineShader->SetUniformFloat("u_maxVelocity", 1);
+
+            _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
+            _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
+            _lineShader->SetUniformFloat("u_shinines", _shinines);
+
+            _lineShader->Bind();
+            _lineVertexArray->Bind();
+            
+            //GL(DrawElements(GL_LINES, 500*500*2*3, GL_UNSIGNED_INT, 0));
+            GL(DrawElements(GL_TRIANGLES, _windIndices.size(), GL_UNSIGNED_INT, 0));
+            
+            _lineShader->Unbind();
+            _lineVertexArray->UnBind();
         }
+    } else {
         _windPts.clear();
         _windIndices.clear();
-        _geomGen.GenerateGeometry(_isabelWind, static_cast<Axis>(ax), _cuts[ax], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
+        _geomGen.GenerateGeometry(_isabelWind, Axis::NONE, 0, _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
         _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
         _lineIndexBuffer->SetData(0, _windIndices.size() * sizeof(int), _windIndices.data());
-
-        //for (const VertexPosVel& vertex : _windPts)
-        //{
-        //    _maxLocalVelocity = std::max(vertex.vel, _maxLocalVelocity);
-        //    _minLocalVelocity = std::min(vertex.vel, _minLocalVelocity);
-        //}
 
         glm::mat4 PVM = _camera.GetP() * _camera.GetV();
 
         _lineShader->SetUniformMat4("u_PVM", PVM);
-        //_lineShader->SetUniformFloat("u_minVelocity", _minGlobalVelocity);
-        //_lineShader->SetUniformFloat("u_maxVelocity", _maxGlobalVelocity);
         _lineShader->SetUniformFloat("u_minVelocity", 0);
         _lineShader->SetUniformFloat("u_maxVelocity", 1);
-
         _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
         _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
         _lineShader->SetUniformFloat("u_shinines", _shinines);
@@ -312,20 +457,28 @@ void VizApp::Update(double deltaTime)
         if (ImGui::BeginTabBar("##TabBar"))
         {
             if (ImGui::BeginTabItem("Main")) {
+                ImGui::Text("Temperature");
                 ImGui::Checkbox("Temperature X Cut", &_tempCutEnabled[0]);
                 ImGui::Checkbox("Temperature Y Cut", &_tempCutEnabled[1]);
                 ImGui::Checkbox("Temperature Z Cut", &_tempCutEnabled[2]);
-                ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
-                ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
-                ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
-                ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
-                ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
-                ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
+                ImGui::Text("Wind");
+                static const char* windVizType[] = { "selection", "cuts" };
+                ImGui::Combo("Visualization type", (int*)&_useCuts, windVizType, IM_ARRAYSIZE(windVizType));
+                if (_useCuts) {
+                    ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
+                    ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
+                    ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
+                    ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
+                    ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
+                    ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
+                } else {
+                    // TODO: add selection with sphere
+                }
 
-                ImGui::SliderInt("axis num. samples", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
+                ImGui::SliderInt("Axis num. samples", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
 
                 static const char* geomType[] = { "streamlines", "arrows"};
-                ImGui::Combo("geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
+                ImGui::Combo("Geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
 
                 ImGui::EndTabItem();
             }
@@ -355,7 +508,7 @@ void VizApp::Update(double deltaTime)
         
 
         {
-            //GradientGeneratorWindow();
+            GradientGeneratorWindow();
         }
     }
 
