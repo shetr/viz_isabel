@@ -60,6 +60,8 @@ private:
     VizType _vizType = VizType::CUTS;
     glm::vec3 _selectionPos = glm::vec3(0.5f);
     float _selectionSize = 1;
+    float _speedFactor = 0.5f;
+    bool _scaleArrows = false;
 public:
     typedef void (GeometryGenerator::*GenGeomFunc)(const vector3d<glm::vec3>&, glm::vec3, unsigned int&, std::vector<VertexPosVel> &, std::vector<int>&);
 
@@ -68,9 +70,10 @@ public:
     unsigned int& GetStreamlineSegments() { return _streamlineSegments; }
     unsigned int& GetStreamlineScale() { return _streamlineScale; }
     VizType& GetVizType() { return _vizType; }
-    
+    float& GetSpeedFactor() { return _speedFactor; }
     glm::vec3& GetSelectionPos() { return _selectionPos; }
     float& GetSelectionSize() { return _selectionSize; }
+    bool& GetScaleArrows() { return _scaleArrows; }
 
     glm::vec3 GenRandomVec(glm::vec3 min, glm::vec3 max);
 

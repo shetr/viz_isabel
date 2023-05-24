@@ -395,19 +395,14 @@ void VizApp::Update(double deltaTime)
             _lineVertexBuffer->SetData(0, _windPts.size() * sizeof(VertexPosVel), _windPts.data());
             _lineIndexBuffer->SetData(0, _windIndices.size() * sizeof(int), _windIndices.data());
 
-            //for (const VertexPosVel& vertex : _windPts)
-            //{
-            //    _maxLocalVelocity = std::max(vertex.vel, _maxLocalVelocity);
-            //    _minLocalVelocity = std::min(vertex.vel, _minLocalVelocity);
-            //}
-
             glm::mat4 PVM = _camera.GetP() * _camera.GetV();
 
             _lineShader->SetUniformMat4("u_PVM", PVM);
-            //_lineShader->SetUniformFloat("u_minVelocity", _minGlobalVelocity);
-            //_lineShader->SetUniformFloat("u_maxVelocity", _maxGlobalVelocity);
             _lineShader->SetUniformFloat("u_minVelocity", 0);
             _lineShader->SetUniformFloat("u_maxVelocity", 1);
+            
+            _lineShader->SetUniformFloat3("u_lowColor", _startVelColor);
+            _lineShader->SetUniformFloat3("u_highColor", _endVelColor);
 
             _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
             _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
@@ -434,6 +429,8 @@ void VizApp::Update(double deltaTime)
         _lineShader->SetUniformMat4("u_PVM", PVM);
         _lineShader->SetUniformFloat("u_minVelocity", 0);
         _lineShader->SetUniformFloat("u_maxVelocity", 1);
+        _lineShader->SetUniformFloat3("u_lowColor", _startVelColor);
+        _lineShader->SetUniformFloat3("u_highColor", _endVelColor);
         _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
         _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
         _lineShader->SetUniformFloat("u_shinines", _shinines);
@@ -483,8 +480,10 @@ void VizApp::Update(double deltaTime)
                 static const char* geomType[] = { "streamlines", "arrows"};
                 ImGui::Combo("Geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
                 
+                ImGui::SliderFloat("Speed factor", &_geomGen.GetSpeedFactor(), 0.1, 1);
                 ImGui::SliderInt("Streamline num. segments", (int*)&_geomGen.GetStreamlineSegments(), 1, 20);
                 ImGui::SliderInt("Streamline scale", (int*)&_geomGen.GetStreamlineScale(), 1, 10);
+                ImGui::Checkbox("Scale arrows", &_geomGen.GetScaleArrows());
 
                 ImGui::EndTabItem();
             }
@@ -495,12 +494,17 @@ void VizApp::Update(double deltaTime)
                 ImGui::ColorEdit3("zero color", &_zeroColor[0]);
                 ImGui::ColorEdit3("warm color", &_warmColor[0]);
                 ImGui::ColorEdit3("invalid color", &_invalidColor[0]);
+                ImGui::Text("Speed colors");
+                ImGui::ColorEdit3("start color", &_startVelColor[0]);
+                ImGui::ColorEdit3("end color", &_endVelColor[0]);
                 
+                ImGui::Text("Camera");
                 ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
                 ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
                 ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
                 ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
 
+                ImGui::Text("Light");
                 ImGui::SliderFloat("shinines", &_shinines, 1, 100);
 
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
