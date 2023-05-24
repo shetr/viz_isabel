@@ -15,6 +15,7 @@ public:
     Texture(GLenum type, GLenum sizedFormat, GLenum format, GLenum dataType);
     ~Texture();
 
+    GLuint GetID() const { return _id; }
     
     void SetData2D(int width, int height, const void* data);
     void SetData3D(int width, int height, int depth, const void* data);

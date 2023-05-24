@@ -299,11 +299,6 @@ void GeometryGenerator::HgtGeometry(const vector3d<float>& data, std::vector<Ver
     glm::vec3 n = glm::vec3(0, 1, 0);
     
     float maxHeight = 19835;
-    //for (int i = 0; i < data.size(); ++i) {
-    //    if (data[i] < 1.0e34)
-    //        maxHeight = std::max(maxHeight, data[i]);
-    //}
-    //std::cout << maxHeight <<std::endl;
     glm::vec3 scale = data.dim() - glm::uvec3(1);
     scale.y = maxHeight;
     

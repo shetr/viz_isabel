@@ -18,15 +18,6 @@ in vec2 f_uv;
 void main()
 {
     float invalidTempLimit = 1.0e34;
-    vec3 colors[5] = {
-        vec3(253, 231, 37) / 255.0,
-        vec3(94, 201, 98) / 255.0,
-        vec3(33, 145, 140) / 255.0,
-        vec3(59, 82, 139) / 255.0,
-        vec3(68, 1, 84) / 255.0
-    };
-    vec3 c1 = vec3(0, 0, 1);
-    vec3 c2 = vec3(1, 0, 0);
     vec3 texCoord = vec3(0, 0, 0);
     if (u_axis == 0) {
         texCoord = vec3(u_shift, f_uv.y, 1-f_uv.x);

@@ -54,13 +54,13 @@ private:
     float _cellSize;
     float _lineLength;
     int _randomSeed = 0;
-    bool _useRandomSamples = false;
+    bool _useRandomSamples = true;
     unsigned int _streamlineSegments = 20;
     unsigned int _streamlineScale = 5;
     VizType _vizType = VizType::CUTS;
     glm::vec3 _selectionPos = glm::vec3(0.5f);
     float _selectionSize = 1;
-    float _speedFactor = 0.5f;
+    float _speedFactor = 0.27f;
     bool _scaleArrows = false;
 public:
     typedef void (GeometryGenerator::*GenGeomFunc)(const vector3d<glm::vec3>&, glm::vec3, unsigned int&, std::vector<VertexPosVel> &, std::vector<int>&);

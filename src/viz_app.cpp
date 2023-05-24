@@ -1,7 +1,7 @@
 #include "viz_app.h"
 
 #include <numeric>
-
+#include <algorithm>
 #include <intrin.h>
 
 VertexPosUV g_quad[] = {
@@ -17,32 +17,32 @@ const float g_maxTemp = 31.51576;
 
 const float g_invalidValueLimit = 1.0e34;
 
-glm::vec4 VizApp::ComputeInterpolatedColor(float val)
+glm::vec4 LegendGradient::ComputeInterpolatedColor(float val)
 {
     glm::vec4 ret = glm::vec4(1.f);
 
-    if (_gradients.size() > 1)
+    std::sort(gradients.begin(), gradients.end(), [](const Gradient& a, const Gradient& b) {
+        return a.weight < b.weight;
+    });
+
+    if (gradients.size() > 1)
     {
-        for (int i = 0; i < _gradients.size(); i++)
+        for (int i = 0; i < gradients.size(); i++)
         {
-            if (_gradients[i].weight >= val)
-            {   
-                if (i + 1 < _gradients.size())
+            if (i + 1 < gradients.size())
+            {
+                if (gradients[i].weight <= val && gradients[i+1].weight >= val)
                 {
-                    ret = _gradients[i].color * glm::vec4((val - _gradients[i].weight)) - _gradients[i + 1].color * glm::vec4((val - _gradients[i + 1].weight));
-                    return ret;
-                }
-                else
-                {
-                    ret = _gradients[i].color;
+                    float t = (val - gradients[i].weight) / (gradients[i + 1].weight - gradients[i].weight);
+                    ret = gradients[i].color * glm::vec4(glm::vec3(1.f) - glm::vec3(t), 1.f) + gradients[i + 1].color * glm::vec4(glm::vec3(t), 1.f);
                     return ret;
                 }
             }
         }
     }
-    else if (_gradients.size() == 1)
+    else if (gradients.size() == 1)
     {
-        return glm::vec4(_gradients[0].color.x, _gradients[0].color.y, _gradients[0].color.z, _gradients[0].color.w);
+        return glm::vec4(gradients[0].color.x, gradients[0].color.y, gradients[0].color.z, gradients[0].color.w);
     }
 
     return ret;
@@ -53,7 +53,7 @@ Gradient::Gradient(float pos, glm::vec4 col) : weight(pos), color(col)
 
 }
 
-
+/*
 void VizApp::GradientGeneratorWindow()
 {
     if (ImGui::Begin(("Gradient color editor##")))
@@ -172,7 +172,7 @@ void VizApp::GradientGeneratorWindow()
     ImGui::End();
     }
 }
-
+*/
 
 
 void ReadVolumetricFile(const std::string& filename, vector3d<float>& out)
@@ -209,6 +209,14 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
 
     _window = window;
     _imguiContext = imguiContext;
+
+    _velColors = {
+        glm::vec4(68, 1, 84,255) / glm::vec4(255.f),
+        glm::vec4(59, 82, 139,255) / glm::vec4(255.f),
+        glm::vec4(33, 145, 140,255) / glm::vec4(255.f),
+        glm::vec4(94, 201, 98,255) / glm::vec4(255.f),
+        glm::vec4(253,231,37,255) / glm::vec4(255.f)
+    };
     
     glfwSetErrorCallback(&ErrorCallback);
 
@@ -243,8 +251,6 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
         _maxGlobalVelocity = std::max(vel, _maxGlobalVelocity);
         _minGlobalVelocity = std::min(vel, _minGlobalVelocity);
     }
-    //std::cout << _minGlobalVelocity << std::endl;
-    //std::cout << _maxGlobalVelocity << std::endl;
     for (size_t i = 0; i < _isabelWind.size(); ++i) {
         _isabelWind[i] /= _maxGlobalVelocity;
     }
@@ -281,9 +287,6 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     std::string lineShaderFS = std::string(SHADERS_SRC_LOC) + "line.fs";
     _lineShader = std::unique_ptr<Shader>(new Shader(lineShaderVS, lineShaderFS));
 
-    //_windPts.reserve(data_size.x * data_size.y * data_size.z * 3 * 2); // array for uniform lines vbuffer 
-    //GenerateLines(_isabelWind, _windPts);
-
     _windPts.reserve(data_size.x * data_size.z * 2); // array for uniform lines vbuffer
     _geomGen.GetAxisNumSamples() = _maxAxisNumSamples;
     _geomGen.GenerateGeometry(_isabelWind, Axis::NONE, _cuts[1], _windPts, _windIndices, _genGeomFuncs[static_cast<int>(_geomType)]);
@@ -297,6 +300,53 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _lineVertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(_windPts.size() * sizeof(VertexPosVel), _windPts.data(), lineVerticesLayout, GL_DYNAMIC_STORAGE_BIT));
     _lineIndexBuffer = std::unique_ptr<IndexBuffer>(new IndexBuffer(_windIndices.size() * sizeof(int), _windIndices.data(), GL_DYNAMIC_STORAGE_BIT));
     _lineVertexArray = std::unique_ptr<VertexArray>(new VertexArray(*_lineVertexBuffer, *_lineIndexBuffer));
+
+    std::shared_ptr<LegendGradient> viridis = std::shared_ptr<LegendGradient>(new LegendGradient());
+    _legendGradients.push_back(viridis);
+    viridis->gradients.push_back(Gradient(0.f, glm::vec4(68, 1, 84,255) / glm::vec4(255.f)));
+    viridis->gradients.push_back(Gradient(0.25f, glm::vec4(59, 82, 139,255) / glm::vec4(255.f)));
+    viridis->gradients.push_back(Gradient(0.5f, glm::vec4(33, 145, 140,255) / glm::vec4(255.f)));
+    viridis->gradients.push_back(Gradient(0.75f, glm::vec4(94, 201, 98,255) / glm::vec4(255.f)));
+    viridis->gradients.push_back(Gradient(1.f, glm::vec4(253,231,37,255) / glm::vec4(255.f)));
+
+    viridis->texture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_2D, GL_RGB32F, GL_RGB, GL_FLOAT));
+    std::vector<float> ptrtexdata;
+    
+    for (int i = 0; i < 10; i++)
+    {
+        for (int j = 0; j < 200; j++)
+        {
+            float id = (1.f / 200.f) * j;
+            auto col = _legendGradients[0]->ComputeInterpolatedColor(id);
+            ptrtexdata.push_back(col.x);
+            ptrtexdata.push_back(col.y);
+            ptrtexdata.push_back(col.z);
+        }
+    }
+    viridis->texture->SetData2D(200, 10, ptrtexdata.data());
+
+    std::shared_ptr<LegendGradient> temp = std::shared_ptr<LegendGradient>(new LegendGradient());
+    _legendGradients.push_back(temp);
+    float zeroAt = (1.f / (g_maxTemp - g_minTemp)) * std::abs(g_minTemp);
+    temp->gradients.push_back(Gradient(0.f, glm::vec4(0.0, 0.0, 1.0, 1.f)));
+    temp->gradients.push_back(Gradient(zeroAt,glm::vec4(1.0)));
+    temp->gradients.push_back(Gradient(1.f, glm::vec4(1.0, 0.0, 0.0, 1.f)));
+
+    temp->texture = std::unique_ptr<Texture>(new Texture(GL_TEXTURE_2D, GL_RGB32F, GL_RGB, GL_FLOAT));
+    std::vector<float> ptrtexdata2;
+    
+    for (int i = 0; i < 10; i++)
+    {
+        for (int j = 0; j < 200; j++)
+        {
+            float id = (1.f / 200.f) * j;
+            auto col = _legendGradients[1]->ComputeInterpolatedColor(id);
+            ptrtexdata2.push_back(col.x);
+            ptrtexdata2.push_back(col.y);
+            ptrtexdata2.push_back(col.z);
+        }
+    }
+    temp->texture->SetData2D(200, 10, ptrtexdata2.data());
 
     GL(Disable(GL_CULL_FACE));
     GL(Enable(GL_DEPTH_TEST));
@@ -315,9 +365,18 @@ void VizApp::Update(double deltaTime)
     float aspectRatio = (float) winSize.x / (float) winSize.y;
     glm::vec2 cursorPos = _window->GetCursorPosEye();
     glm::vec2 cursorDir = cursorPos - _lastCursorPos;
-    if (!ImGui::IsAnyWindowHovered() && !ImGui::IsAnyWindowFocused() && _window->IsMouseButtonPressed(MouseButton::LEFT_1)) {
-        _camera.GetRotY() -= _camera.GetMovementSpeed() * cursorDir.x;
-        _camera.GetRotX() -= _camera.GetMovementSpeed() * cursorDir.y;
+    if (!ImGui::IsAnyWindowHovered() && !ImGui::IsAnyWindowFocused()) {
+        if (_window->IsMouseButtonPressed(MouseButton::LEFT_1)) {
+            _camera.GetRotY() -= _camera.GetRotationSpeed() * cursorDir.x;
+            _camera.GetRotX() -= _camera.GetRotationSpeed() * cursorDir.y;
+        } else if (_window->IsMouseButtonPressed(MouseButton::RIGHT_2)) {
+            _camera.Recalculate(aspectRatio);
+            glm::mat4 R = _camera.GetRoation();
+            glm::vec3 u = R * glm::vec4(1, 0, 0, 1);
+            glm::vec3 v = R * glm::vec4(0, 1, 0, 1);
+            glm::vec3 diff = -_camera.GetMovementSpeed() * (cursorDir.x * u + cursorDir.y * v);
+            _camera.GetCenterPos() = glm::max(glm::vec3(-0.5f), glm::min(glm::vec3(0.5f), _camera.GetCenterPos() + diff));
+        }
     }
     _camera.Recalculate(aspectRatio);
 
@@ -380,8 +439,6 @@ void VizApp::Update(double deltaTime)
 
     }
     
-    _maxLocalVelocity = -std::numeric_limits<float>::infinity();
-    _minLocalVelocity = std::numeric_limits<float>::infinity();
     // Draw wind line glyphs
     if (_geomGen.GetVizType() == VizType::CUTS) {
         for (int ax = 0; ax < 3; ++ax)
@@ -401,8 +458,7 @@ void VizApp::Update(double deltaTime)
             _lineShader->SetUniformFloat("u_minVelocity", 0);
             _lineShader->SetUniformFloat("u_maxVelocity", 1);
             
-            _lineShader->SetUniformFloat3("u_lowColor", _startVelColor);
-            _lineShader->SetUniformFloat3("u_highColor", _endVelColor);
+            _lineShader->SetUniformFloat3v("u_colors", _velColors);
 
             _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
             _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
@@ -411,7 +467,6 @@ void VizApp::Update(double deltaTime)
             _lineShader->Bind();
             _lineVertexArray->Bind();
             
-            //GL(DrawElements(GL_LINES, 500*500*2*3, GL_UNSIGNED_INT, 0));
             GL(DrawElements(GL_TRIANGLES, _windIndices.size(), GL_UNSIGNED_INT, 0));
             
             _lineShader->Unbind();
@@ -429,8 +484,7 @@ void VizApp::Update(double deltaTime)
         _lineShader->SetUniformMat4("u_PVM", PVM);
         _lineShader->SetUniformFloat("u_minVelocity", 0);
         _lineShader->SetUniformFloat("u_maxVelocity", 1);
-        _lineShader->SetUniformFloat3("u_lowColor", _startVelColor);
-        _lineShader->SetUniformFloat3("u_highColor", _endVelColor);
+        _lineShader->SetUniformFloat3v("u_colors", _velColors);
         _lineShader->SetUniformFloat3("u_cameraPosition", cameraPosition);
         _lineShader->SetUniformFloat3("u_lightDir", _lightDir);
         _lineShader->SetUniformFloat("u_shinines", _shinines);
@@ -454,36 +508,72 @@ void VizApp::Update(double deltaTime)
         if (ImGui::BeginTabBar("##TabBar"))
         {
             if (ImGui::BeginTabItem("Main")) {
-                ImGui::Text("Cut positions");
-                ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
-                ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
-                ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
-                ImGui::Text("Temperature");
-                ImGui::Checkbox("Temperature X Cut", &_tempCutEnabled[0]);
-                ImGui::Checkbox("Temperature Y Cut", &_tempCutEnabled[1]);
-                ImGui::Checkbox("Temperature Z Cut", &_tempCutEnabled[2]);
-                ImGui::Text("Wind");
-                static const char* windVizType[] = { "selection", "cuts" };
-                ImGui::Combo("Visualization type", (int*)&_geomGen.GetVizType(), windVizType, IM_ARRAYSIZE(windVizType));
-                if (_geomGen.GetVizType() == VizType::CUTS) {
-                    ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
-                    ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
-                    ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
-                } else {
-                    ImGui::SliderFloat3("Selection pos", (float*)&_geomGen.GetSelectionPos(), 0.0f, 1.0f);
-                    ImGui::SliderFloat("Selection size", &_geomGen.GetSelectionSize(), 0, 1);
+                bool resetCamPos = ImGui::Button("Reset camera pos");
+                if (resetCamPos) {
+                    _camera.GetCenterPos() = glm::vec3(0);
+                }
+                if (ImGui::CollapsingHeader("Cut positions", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
+                    ImGui::SliderFloat("Y cut pos", &_cuts[1], 0.005f, 1);
+                    ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
+                }
+                if (ImGui::CollapsingHeader("Temperature", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    ImGui::Checkbox("Temperature X Cut", &_tempCutEnabled[0]);
+                    ImGui::Checkbox("Temperature Y Cut", &_tempCutEnabled[1]);
+                    ImGui::Checkbox("Temperature Z Cut", &_tempCutEnabled[2]);
+                }
+                if (ImGui::CollapsingHeader("Wind", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    static const char* windVizType[] = { "selection", "cuts" };
+                    ImGui::Combo("Visualization type", (int*)&_geomGen.GetVizType(), windVizType, IM_ARRAYSIZE(windVizType));
+                    if (_geomGen.GetVizType() == VizType::CUTS) {
+                        ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
+                        ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
+                        ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
+                    } else {
+                        ImGui::SliderFloat3("Selection pos", (float*)&_geomGen.GetSelectionPos(), 0.0f, 1.0f);
+                        ImGui::SliderFloat("Selection size", &_geomGen.GetSelectionSize(), 0.01f, 1);
+                    }
+
+                    static const char* geomType[] = { "streamlines", "arrows"};
+                    ImGui::Combo("Geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
+                    ImGui::Text("Samples");
+                    ImGui::SliderInt("Num. samples axis", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
+                    ImGui::Checkbox("Use random samples", &_geomGen.GetUseRandomSamples());
+                    ImGui::Text("Segments");
+                    ImGui::SliderFloat("Speed factor", &_geomGen.GetSpeedFactor(), 0.1, 1);
+                    ImGui::SliderInt("Streamline num. segments", (int*)&_geomGen.GetStreamlineSegments(), 1, 20);
+                    ImGui::SliderInt("Streamline scale", (int*)&_geomGen.GetStreamlineScale(), 1, 10);
+                    ImGui::Text("Arrows");
+                    ImGui::Checkbox("Scale arrows", &_geomGen.GetScaleArrows());
                 }
 
-                ImGui::SliderInt("Axis num. samples", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
-                ImGui::Checkbox("Use random samples", &_geomGen.GetUseRandomSamples());
-
-                static const char* geomType[] = { "streamlines", "arrows"};
-                ImGui::Combo("Geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
+                {
+                    ImGui::Text("Wind velocity (m/s)");
+                    ImGui::Image((void*)(intptr_t)_legendGradients[0]->texture->GetID(), {200,10}, {0,0}, {1,1});
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Endpoint color denotes the maximal wind velocity of the arrow/streamline. Also denotes the streamline orientation.");
+                    }
+                    ImGui::Text(std::to_string((int)_minGlobalVelocity).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(200);
+                    ImGui::Text(std::to_string((int)_maxGlobalVelocity).c_str());
+                }
+                {
+                    ImGui::Text("Air temperature (°C)");
+                    ImGui::Image((void*)(intptr_t)_legendGradients[1]->texture->GetID(), {200,10}, {0,0}, {1,1});
+                    ImGui::Text(std::to_string((int)g_minTemp).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(_legendGradients[1]->gradients[1].weight * 200);
+                    ImGui::Text(std::to_string(0).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(_legendGradients[1]->gradients[2].weight * 200);
+                    ImGui::Text(std::to_string((int)g_maxTemp).c_str());
+                }
                 
-                ImGui::SliderFloat("Speed factor", &_geomGen.GetSpeedFactor(), 0.1, 1);
-                ImGui::SliderInt("Streamline num. segments", (int*)&_geomGen.GetStreamlineSegments(), 1, 20);
-                ImGui::SliderInt("Streamline scale", (int*)&_geomGen.GetStreamlineScale(), 1, 10);
-                ImGui::Checkbox("Scale arrows", &_geomGen.GetScaleArrows());
 
                 ImGui::EndTabItem();
             }
@@ -495,18 +585,49 @@ void VizApp::Update(double deltaTime)
                 ImGui::ColorEdit3("warm color", &_warmColor[0]);
                 ImGui::ColorEdit3("invalid color", &_invalidColor[0]);
                 ImGui::Text("Speed colors");
-                ImGui::ColorEdit3("start color", &_startVelColor[0]);
-                ImGui::ColorEdit3("end color", &_endVelColor[0]);
+                for (int c = 0; c < (int)_velColors.size(); ++c) {
+                    ImGui::ColorEdit3((std::string("speed color ") + std::to_string(c)).c_str(), (float*)&_velColors[c]);
+                }
                 
                 ImGui::Text("Camera");
+                ImGui::SliderFloat3("Cam pos", (float*)&_camera.GetCenterPos(), -0.5f, 0.5f);
                 ImGui::SliderFloat("rot y", &_camera.GetRotY(), -180, 180);
                 ImGui::SliderFloat("rot x", &_camera.GetRotX(), -89, 89);
-                ImGui::SliderFloat("cam speed", &_camera.GetMovementSpeed(), 0, 500);
+                ImGui::SliderFloat("cam move speed", &_camera.GetMovementSpeed(), 0, 1.5f);
+                ImGui::SliderFloat("cam rot speed", &_camera.GetRotationSpeed(), 0, 500);
                 ImGui::SliderFloat("cam FOV", &_camera.GetFOV(), _minFOV, _maxFOV);
 
                 ImGui::Text("Light");
                 ImGui::SliderFloat("shinines", &_shinines, 1, 100);
-
+                
+                {
+                    ImGui::Text("Wind velocity (m/s)");
+                    ImGui::Image((void*)(intptr_t)_legendGradients[0]->texture->GetID(), {200,10}, {0,0}, {1,1});
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Denotes the streamline orientation. Endpoint color denotes the maximal wind velocity of the streamline.");
+                    }
+                    //ImGui::SetCursorPosX(0);
+                    ImGui::Text(std::to_string((int)_minGlobalVelocity).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(200);
+                    ImGui::Text(std::to_string((int)_maxGlobalVelocity).c_str());
+                    //ImGui::Text("Maximal velocity");
+                    //ImGui::
+                }
+                {
+                    ImGui::Text("Air temperature (°C)");
+                    ImGui::Image((void*)(intptr_t)_legendGradients[1]->texture->GetID(), {200,10}, {0,0}, {1,1});
+                    //ImGui::SetCursorPosX(_legendGradients[1]->gradients[0].weight * 200);
+                    ImGui::Text(std::to_string((int)g_minTemp).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(_legendGradients[1]->gradients[1].weight * 200);
+                    ImGui::Text(std::to_string(0).c_str());
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(_legendGradients[1]->gradients[2].weight * 200);
+                    ImGui::Text(std::to_string((int)g_maxTemp).c_str());
+                }
+                
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", deltaTime * 1000.0, 1.0 / deltaTime);
                 
                 ImGui::EndTabItem();
@@ -518,7 +639,7 @@ void VizApp::Update(double deltaTime)
         
 
         {
-            GradientGeneratorWindow();
+            //GradientGeneratorWindow();
         }
     }
 

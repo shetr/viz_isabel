@@ -24,7 +24,16 @@ void Camera::Recalculate(float aspectRatio)
     }
 
     _P = glm::perspective(glm::radians(_FOV), aspectRatio, _near, _far);
-    _V = glm::translate(-_pos) * glm::rotate(-glm::radians(_rotX), glm::vec3(-1, 0, 0)) * glm::rotate(-glm::radians(_rotY), glm::vec3(0, 1, 0));
+    _V = 
+        glm::translate(-_offset) *
+        glm::rotate(-glm::radians(_rotX), glm::vec3(-1, 0, 0)) *
+        glm::rotate(-glm::radians(_rotY), glm::vec3(0, 1, 0)) * 
+        glm::translate(-_centerPos);
+}
+
+const glm::mat4& Camera::GetRoation() const
+{
+    return glm::rotate(glm::radians(_rotY), glm::vec3(0, 1, 0)) * glm::rotate(glm::radians(_rotX), glm::vec3(-1, 0, 0));
 }
 
 void Camera::SetNear(float n)

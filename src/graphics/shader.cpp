@@ -200,10 +200,10 @@ void Shader::SetUniformFloat3(const std::string& name, const glm::vec3& val)
     SetUniformFloat3(name, val.x, val.y, val.z);
 }
 
-void Shader::SetUniformFloat3v(const std::string& name, const glm::vec3& val)
+void Shader::SetUniformFloat3v(const std::string& name, const std::vector<glm::vec3>& vals)
 {
     GL(UseProgram(_programID));
-    GL(Uniform3fv(GetUniformLocation(name), 1, glm::value_ptr(val)));
+    GL(Uniform3fv(GetUniformLocation(name), vals.size(), reinterpret_cast<const float*>(vals.data())));
     Unbind();
 }
 

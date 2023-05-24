@@ -15,7 +15,21 @@ class Gradient
 public:
     glm::vec4 color;
     float weight;
+
+    Gradient() {}
     Gradient(float pos, glm::vec4 col);
+};
+
+class LegendGradient
+{
+public:
+    LegendGradient() {}
+    ~LegendGradient() {}
+    
+    std::vector<Gradient> gradients;
+    std::unique_ptr<Texture> texture;
+    
+    glm::vec4 ComputeInterpolatedColor(float val);
 };
 
 class VizApp : public AppImpl
@@ -51,15 +65,15 @@ private:
     glm::vec3 _warmColor = glm::vec3(243.0, 43.0, 0.0) / 255.f;
     glm::vec3 _invalidColor = glm::vec3(0.5);
     
-    glm::vec3 _startVelColor = glm::vec3(0.0, 255.0, 0.0) / 255.f;
-    glm::vec3 _endVelColor = glm::vec3(1.0, 0, 0);
+    // LegendGradient .. 2 Gradient
+    // 1. 0 1.f 0 w = 0
+    // 2. 1.f 0 0 w = 1
+    std::vector<glm::vec3> _velColors;
 
     float _maxTempValue = -std::numeric_limits<float>::infinity();
     float _minTempValue = std::numeric_limits<float>::infinity();
     float _maxGlobalVelocity = -std::numeric_limits<float>::infinity();
     float _minGlobalVelocity = std::numeric_limits<float>::infinity();
-    float _maxLocalVelocity = -std::numeric_limits<float>::infinity();
-    float _minLocalVelocity = std::numeric_limits<float>::infinity();
     
     std::vector<VertexPosVel> _windPts;
     std::vector<int> _windIndices;
@@ -74,7 +88,7 @@ private:
     float _maxFOV = 90.0f;
     glm::vec2 _lastCursorPos;
     
-    const unsigned int _minAxisNumSamples = 5;
+    const unsigned int _minAxisNumSamples = 1;
     const unsigned int _maxAxisNumSamples = 30;
 
     glm::vec3 _lightDir = glm::vec3(0.2, -1.0, 0.2);
@@ -86,6 +100,8 @@ private:
         &GeometryGenerator::GenArrow
     };
     std::vector<Gradient> _gradients;
+    std::vector<std::shared_ptr<LegendGradient>> _legendGradients;
+
 public:
     VizApp() {}
     
@@ -94,8 +110,8 @@ protected:
     void Update(double deltaTime) override;
     void Shutdown() override;
 
-    glm::vec4 ComputeInterpolatedColor(float val);
-    void GradientGeneratorWindow();
+    //glm::vec4 ComputeInterpolatedColor(float val);
+    //void GradientGeneratorWindow();
 
 private:
     static void ErrorCallback(int code, const char* message);

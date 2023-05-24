@@ -33,7 +33,7 @@ public:
 	void SetUniformFloat2v(const std::string& name, const glm::vec2& val);
 	void SetUniformFloat3(const std::string& name, float val1, float val2, float val3);
 	void SetUniformFloat3(const std::string& name, const glm::vec3& val);
-	void SetUniformFloat3v(const std::string& name, const glm::vec3& val);
+	void SetUniformFloat3v(const std::string& name, const std::vector<glm::vec3>& vals);
 	void SetUniformFloat4(const std::string& name, float val1, float val2, float val3, float val4);
 	void SetUniformFloat4(const std::string& name, const glm::vec4& val);
 	void SetUniformFloat4v(const std::string& name, const glm::vec4& val);
