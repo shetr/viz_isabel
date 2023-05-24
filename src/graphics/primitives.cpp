@@ -33,6 +33,12 @@ glm::vec3 TrilinearInterpolation(const vector3d<glm::vec3>& data, glm::vec3 coor
     return val;
 }
 
+glm::vec3 GeometryGenerator::GenRandomVec(glm::vec3 min, glm::vec3 max)
+{
+    glm::vec3 r = glm::vec3((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+    return (r * (max - min)) + min;
+}
+
 void GeometryGenerator::GenTriangle(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, glm::vec3 x1, glm::vec3 x2, glm::vec3 x3, glm::vec3 n1, glm::vec3 n2, glm::vec3 n3)
 {
     pts.push_back({x1, vel, n1});
@@ -183,7 +189,6 @@ void GeometryGenerator::GenTubeSegment(const vector3d<glm::vec3>& data, glm::vec
 
 void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
 {
-    const unsigned int slineSegments = 20;
     const float tubeWidth = _cellSize;
 
     glm::vec3 velDir = TrilinearInterpolation(data, pos);
@@ -194,13 +199,13 @@ void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3
 
     float totalVel = 0;
     
-    while(currSegment < slineSegments)
+    while(currSegment < _streamlineSegments)
     {
 
         float vel = std::sqrt(glm::dot(currVelDir, currVelDir));
-        float segmentLength = vel * 5 * _lineLength / slineSegments;
+        float segmentLength = vel * _streamlineScale * _lineLength / _streamlineSegments;
         totalVel += vel;
-        float velViz = totalVel / slineSegments;
+        float velViz = totalVel / _streamlineSegments;
         
         glm::vec3 s = currPos;
         glm::vec3 dir = glm::normalize(currVelDir);
@@ -239,12 +244,27 @@ void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3
 
 void GeometryGenerator::GenerateGeometry(const vector3d<glm::vec3>& data, Axis axis, float cutPos, std::vector<VertexPosVel> &pts, std::vector<int> &indices, GenGeomFunc genGeomFunc)
 {
-    _spacing = 1.0f / _axisNumSamples;
-    _cellSize = 1.0f / data.dim().x;
-    _lineLength = _spacing;
+    srand(_randomSeed);
+
+    unsigned int totalSamples = _axisNumSamples * _axisNumSamples;
+    if (axis == Axis::NONE) {
+        totalSamples *= _axisNumSamples;
+    }
+
 
     glm::vec3 min = glm::vec3(0.f);
     glm::vec3 max = glm::vec3(1.0f);
+    if (_vizType == VizType::SELECTION) {
+        min = glm::max(min, _selectionPos - glm::vec3(_selectionSize * 0.5f));
+        max = glm::min(max, _selectionPos + glm::vec3(_selectionSize * 0.5f));
+        _spacing = _selectionSize / _axisNumSamples;
+    } else {
+        _spacing = 1.0f / _axisNumSamples;
+    }
+    
+    _cellSize = 1.0f / data.dim().x;
+    _lineLength = _spacing;
+
     if (axis != Axis::NONE) {
         float level = cutPos * max[static_cast<int>(axis)];
         min[static_cast<int>(axis)] = level;
@@ -254,13 +274,19 @@ void GeometryGenerator::GenerateGeometry(const vector3d<glm::vec3>& data, Axis a
     unsigned int i = 0;
     // uniform generation
 
-    for (float y = min.y ; y <= max.y; y += _spacing)
-    {
-        for (float z = min.z; z <= max.z; z += _spacing)
+    if (_useRandomSamples) {
+        for (int s = 0; s < totalSamples; ++s) {
+            (this->*genGeomFunc)(data, GenRandomVec(min, max), i, pts, indices);
+        }
+    } else {
+        for (float y = min.y ; y <= max.y; y += _spacing)
         {
-            for (float x = min.x; x <= max.x; x += _spacing)
+            for (float z = min.z; z <= max.z; z += _spacing)
             {
-                (this->*genGeomFunc)(data, glm::vec3(x, y, z), i, pts, indices);
+                for (float x = min.x; x <= max.x; x += _spacing)
+                {
+                    (this->*genGeomFunc)(data, glm::vec3(x, y, z), i, pts, indices);
+                }
             }
         }
     }

@@ -383,7 +383,7 @@ void VizApp::Update(double deltaTime)
     _maxLocalVelocity = -std::numeric_limits<float>::infinity();
     _minLocalVelocity = std::numeric_limits<float>::infinity();
     // Draw wind line glyphs
-    if (_useCuts) {
+    if (_geomGen.GetVizType() == VizType::CUTS) {
         for (int ax = 0; ax < 3; ++ax)
         {
             if (!_windCutEnabled[ax]) {
@@ -457,28 +457,34 @@ void VizApp::Update(double deltaTime)
         if (ImGui::BeginTabBar("##TabBar"))
         {
             if (ImGui::BeginTabItem("Main")) {
+                ImGui::Text("Cut positions");
+                ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
+                ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
+                ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
                 ImGui::Text("Temperature");
                 ImGui::Checkbox("Temperature X Cut", &_tempCutEnabled[0]);
                 ImGui::Checkbox("Temperature Y Cut", &_tempCutEnabled[1]);
                 ImGui::Checkbox("Temperature Z Cut", &_tempCutEnabled[2]);
                 ImGui::Text("Wind");
                 static const char* windVizType[] = { "selection", "cuts" };
-                ImGui::Combo("Visualization type", (int*)&_useCuts, windVizType, IM_ARRAYSIZE(windVizType));
-                if (_useCuts) {
+                ImGui::Combo("Visualization type", (int*)&_geomGen.GetVizType(), windVizType, IM_ARRAYSIZE(windVizType));
+                if (_geomGen.GetVizType() == VizType::CUTS) {
                     ImGui::Checkbox("Wind X Cut", &_windCutEnabled[0]);
                     ImGui::Checkbox("Wind Y Cut", &_windCutEnabled[1]);
                     ImGui::Checkbox("Wind Z Cut", &_windCutEnabled[2]);
-                    ImGui::SliderFloat("X cut pos", &_cuts[0], 0, 1);
-                    ImGui::SliderFloat("Y cut pos", &_cuts[1], 0, 1);
-                    ImGui::SliderFloat("Z cut pos", &_cuts[2], 0, 1);
                 } else {
-                    // TODO: add selection with sphere
+                    ImGui::SliderFloat3("Selection pos", (float*)&_geomGen.GetSelectionPos(), 0.0f, 1.0f);
+                    ImGui::SliderFloat("Selection size", &_geomGen.GetSelectionSize(), 0, 1);
                 }
 
                 ImGui::SliderInt("Axis num. samples", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
+                ImGui::Checkbox("Use random samples", &_geomGen.GetUseRandomSamples());
 
                 static const char* geomType[] = { "streamlines", "arrows"};
                 ImGui::Combo("Geometry type", (int*)&_geomType, geomType, IM_ARRAYSIZE(geomType));
+                
+                ImGui::SliderInt("Streamline num. segments", (int*)&_geomGen.GetStreamlineSegments(), 1, 20);
+                ImGui::SliderInt("Streamline scale", (int*)&_geomGen.GetStreamlineScale(), 1, 10);
 
                 ImGui::EndTabItem();
             }

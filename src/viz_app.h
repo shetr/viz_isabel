@@ -44,7 +44,6 @@ private:
     std::unique_ptr<Texture> _tempTexture;
 
     std::array<bool, 3> _tempCutEnabled = {false, true, true};
-    int _useCuts = 1;
     std::array<bool, 3> _windCutEnabled = {false, true, true};
     std::array<float, 3> _cuts = {0.2f, 0.5f, 0.2f};
     glm::vec3 _coldColor = glm::vec3(0.0, 74.0, 193.0) / 255.f;

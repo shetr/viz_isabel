@@ -40,6 +40,12 @@ enum class GeometryType
     ARROWS
 };
 
+enum class VizType
+{
+    SELECTION = 0,
+    CUTS
+};
+
 class GeometryGenerator
 {
 private:
@@ -47,10 +53,26 @@ private:
     float _spacing;
     float _cellSize;
     float _lineLength;
+    int _randomSeed = 0;
+    bool _useRandomSamples = false;
+    unsigned int _streamlineSegments = 20;
+    unsigned int _streamlineScale = 5;
+    VizType _vizType = VizType::CUTS;
+    glm::vec3 _selectionPos = glm::vec3(0.5f);
+    float _selectionSize = 1;
 public:
     typedef void (GeometryGenerator::*GenGeomFunc)(const vector3d<glm::vec3>&, glm::vec3, unsigned int&, std::vector<VertexPosVel> &, std::vector<int>&);
 
     unsigned int& GetAxisNumSamples() { return _axisNumSamples; }
+    bool& GetUseRandomSamples() { return _useRandomSamples; }
+    unsigned int& GetStreamlineSegments() { return _streamlineSegments; }
+    unsigned int& GetStreamlineScale() { return _streamlineScale; }
+    VizType& GetVizType() { return _vizType; }
+    
+    glm::vec3& GetSelectionPos() { return _selectionPos; }
+    float& GetSelectionSize() { return _selectionSize; }
+
+    glm::vec3 GenRandomVec(glm::vec3 min, glm::vec3 max);
 
     void GenTriangle(unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices, float vel, glm::vec3 x1, glm::vec3 x2, glm::vec3 x3, glm::vec3 n1, glm::vec3 n2, glm::vec3 n3);
 
