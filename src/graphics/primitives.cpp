@@ -99,8 +99,6 @@ glm::vec3 GetPerpendicualrTo(glm::vec3 dir)
 void GeometryGenerator::GenArrow(const vector3d<glm::vec3>& data, glm::vec3 pos, unsigned int& index, std::vector<VertexPosVel> &pts, std::vector<int> &indices)
 {
     float tubeWidth = _cellSize;
-    const float bodyRatio = 0.7f;
-    const float tipSize = 2.5f;
 
     glm::vec3 velDir = TrilinearInterpolation(data, pos);
 
@@ -121,9 +119,9 @@ void GeometryGenerator::GenArrow(const vector3d<glm::vec3>& data, glm::vec3 pos,
         float v2 = glm::sin(phi2);
 
         glm::vec3 x11 = s + u1 * uAxis + v1 * vAxis;
-        glm::vec3 x12 = x11 + dir * arrowLength * bodyRatio;
+        glm::vec3 x12 = x11 + dir * arrowLength * _bodyRatio;
         glm::vec3 x21 = s + u2 * uAxis + v2 * vAxis;
-        glm::vec3 x22 = x21 + dir * arrowLength * bodyRatio;
+        glm::vec3 x22 = x21 + dir * arrowLength * _bodyRatio;
 
         glm::vec3 n1 = u1 * uDir + v1 * vDir;
         glm::vec3 n2 = u2 * uDir + v2 * vDir;
@@ -131,9 +129,9 @@ void GeometryGenerator::GenArrow(const vector3d<glm::vec3>& data, glm::vec3 pos,
         GenTriangle(index, pts, indices, vel, x11, x21, s, -dir, -dir, -dir);
         GenQuad(index, pts, indices, vel, x11, x12, x21, x22, n1, n1, n2, n2);
     }
-    s = s + dir * arrowLength * bodyRatio;
-    uAxis *= tipSize;
-    vAxis *= tipSize;
+    s = s + dir * arrowLength * _bodyRatio;
+    uAxis *= _tipSize;
+    vAxis *= _tipSize;
     for (int i = 0; i < g_numSegments; ++i) {
         float phi1 = (float)i * 2.f * glm::pi<float>() / (float)g_numSegments;
         float phi2 = ((float)i + 1.f) * 2.f * glm::pi<float>() / (float)g_numSegments;
@@ -144,7 +142,7 @@ void GeometryGenerator::GenArrow(const vector3d<glm::vec3>& data, glm::vec3 pos,
 
         glm::vec3 x1 = s + u1 * uAxis + v1 * vAxis;
         glm::vec3 x2 = s + u2 * uAxis + v2 * vAxis;
-        glm::vec3 x3 = s + dir * arrowLength * (1 - bodyRatio);
+        glm::vec3 x3 = s + dir * arrowLength * (1 - _bodyRatio);
 
         glm::vec3 n1 = u1 * uDir + v1 * vDir;
         glm::vec3 n2 = u2 * uDir + v2 * vDir;
@@ -206,7 +204,7 @@ void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3
         float vel = glm::pow(glm::length(currVelDir), _speedFactor);
         float segmentLength = vel * _streamlineScale * _lineLength / _streamlineSegments;
         totalVel += vel;
-        float velViz = totalVel / _streamlineSegments;
+        //float velViz = totalVel / _streamlineSegments;
         
         glm::vec3 s = currPos;
         glm::vec3 dir = glm::normalize(currVelDir);
@@ -231,7 +229,7 @@ void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3
             glm::vec3 n1 = u1 * uDir + v1 * vDir;
             glm::vec3 n2 = u2 * uDir + v2 * vDir;
 
-            GenQuad(index, pts, indices, velViz, x11, x12, x21, x22, n1, n1, n2, n2);
+            GenQuad(index, pts, indices, vel, x11, x12, x21, x22, n1, n1, n2, n2);
         }
         
         currPos = s + dir * segmentLength;
@@ -240,6 +238,34 @@ void GeometryGenerator::GenStreamline(const vector3d<glm::vec3>& data, glm::vec3
         }
         currVelDir = TrilinearInterpolation(data, currPos + 0.5f);
         currSegment++;
+    }
+    glm::vec3 s = currPos;
+    float vel = glm::pow(glm::length(currVelDir), _speedFactor);
+    glm::vec3 dir = glm::normalize(currVelDir);
+    glm::vec3 uDir = GetPerpendicualrTo(dir);
+    glm::vec3 vDir = glm::cross(dir, uDir);
+    glm::vec3 uAxis = uDir * tubeWidth;
+    glm::vec3 vAxis = vDir * tubeWidth;
+    uAxis *= _tipSize;
+    vAxis *= _tipSize;
+    for (int i = 0; i < g_numSegments; ++i) {
+        float phi1 = (float)i * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float phi2 = ((float)i + 1.f) * 2.f * glm::pi<float>() / (float)g_numSegments;
+        float u1 = glm::cos(phi1);
+        float v1 = glm::sin(phi1);
+        float u2 = glm::cos(phi2);
+        float v2 = glm::sin(phi2);
+
+        glm::vec3 x1 = s + u1 * uAxis + v1 * vAxis;
+        glm::vec3 x2 = s + u2 * uAxis + v2 * vAxis;
+        glm::vec3 x3 = s + dir * _lineLength * (1 - _bodyRatio);
+
+        glm::vec3 n1 = u1 * uDir + v1 * vDir;
+        glm::vec3 n2 = u2 * uDir + v2 * vDir;
+        glm::vec3 n3 = dir;
+
+        GenTriangle(index, pts, indices, vel, x1, x2, s, -n3, -n3, -n3);
+        GenTriangle(index, pts, indices, vel, x1, x2, x3, n1, n1, n3);
     }
 }
 

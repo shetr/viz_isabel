@@ -60,8 +60,10 @@ private:
     VizType _vizType = VizType::CUTS;
     glm::vec3 _selectionPos = glm::vec3(0.5f);
     float _selectionSize = 1;
-    float _speedFactor = 0.27f;
+    float _speedFactor = 0.42f;
     bool _scaleArrows = false;
+    const float _bodyRatio = 0.7f;
+    const float _tipSize = 2.5f;
 public:
     typedef void (GeometryGenerator::*GenGeomFunc)(const vector3d<glm::vec3>&, glm::vec3, unsigned int&, std::vector<VertexPosVel> &, std::vector<int>&);
 

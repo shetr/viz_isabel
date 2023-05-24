@@ -211,11 +211,11 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     _imguiContext = imguiContext;
 
     _velColors = {
-        glm::vec4(68, 1, 84,255) / glm::vec4(255.f),
-        glm::vec4(59, 82, 139,255) / glm::vec4(255.f),
-        glm::vec4(33, 145, 140,255) / glm::vec4(255.f),
-        glm::vec4(94, 201, 98,255) / glm::vec4(255.f),
-        glm::vec4(253,231,37,255) / glm::vec4(255.f)
+        glm::vec3(68, 1, 84) / glm::vec3(255.f),
+        glm::vec3(59, 82, 139) / glm::vec3(255.f),
+        glm::vec3(33, 145, 140) / glm::vec3(255.f),
+        glm::vec3(94, 201, 98) / glm::vec3(255.f),
+        glm::vec3(253,231,37) / glm::vec3(255.f)
     };
     
     glfwSetErrorCallback(&ErrorCallback);
@@ -316,7 +316,7 @@ void VizApp::Init(Window* window, VizImGuiContext* imguiContext)
     {
         for (int j = 0; j < 200; j++)
         {
-            float id = (1.f / 200.f) * j;
+            float id = std::pow((1.f / 200.f) * j, _geomGen.GetSpeedFactor());
             auto col = _legendGradients[0]->ComputeInterpolatedColor(id);
             ptrtexdata.push_back(col.x);
             ptrtexdata.push_back(col.y);
@@ -503,7 +503,7 @@ void VizApp::Update(double deltaTime)
     {
         ImGuiDraw imguiDraw = _imguiContext->Draw();
 
-        ImGui::Begin("Test");
+        ImGui::Begin("Settings");
         
         if (ImGui::BeginTabBar("##TabBar"))
         {
@@ -543,7 +543,6 @@ void VizApp::Update(double deltaTime)
                     ImGui::SliderInt("Num. samples axis", (int*)&_geomGen.GetAxisNumSamples(), _minAxisNumSamples, _maxAxisNumSamples);
                     ImGui::Checkbox("Use random samples", &_geomGen.GetUseRandomSamples());
                     ImGui::Text("Segments");
-                    ImGui::SliderFloat("Speed factor", &_geomGen.GetSpeedFactor(), 0.1, 1);
                     ImGui::SliderInt("Streamline num. segments", (int*)&_geomGen.GetStreamlineSegments(), 1, 20);
                     ImGui::SliderInt("Streamline scale", (int*)&_geomGen.GetStreamlineScale(), 1, 10);
                     ImGui::Text("Arrows");
@@ -599,6 +598,26 @@ void VizApp::Update(double deltaTime)
 
                 ImGui::Text("Light");
                 ImGui::SliderFloat("shinines", &_shinines, 1, 100);
+
+                ImGui::Text("Streamline speed");
+                
+                if (ImGui::SliderFloat("Speed factor", &_geomGen.GetSpeedFactor(), 0.1, 1))
+                {
+                    std::vector<float> ptrtexdata;
+                    
+                    for (int i = 0; i < 10; i++)
+                    {
+                        for (int j = 0; j < 200; j++)
+                        {
+                            float id = std::pow((1.f / 200.f) * j, _geomGen.GetSpeedFactor());
+                            auto col = _legendGradients[0]->ComputeInterpolatedColor(id);
+                            ptrtexdata.push_back(col.x);
+                            ptrtexdata.push_back(col.y);
+                            ptrtexdata.push_back(col.z);
+                        }
+                    }
+                    _legendGradients[0]->texture->SetData2D(200, 10, ptrtexdata.data());
+                }
                 
                 {
                     ImGui::Text("Wind velocity (m/s)");
@@ -636,11 +655,7 @@ void VizApp::Update(double deltaTime)
             ImGui::EndTabBar();
         }
         ImGui::End();
-        
 
-        {
-            //GradientGeneratorWindow();
-        }
     }
 
     _lastCursorPos = cursorPos;
