@@ -3,3 +3,6 @@ data/*.bin
 data/*.bin.gz
 data/.md5_results
 imgui.ini
+viz.exe
+viz_d.exe
+viz_d.pdb
